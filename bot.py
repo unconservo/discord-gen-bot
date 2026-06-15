@@ -96,8 +96,9 @@ async def refresh_dashboard():
 
     try:
         await dashboard_message.edit(
-            embed=build_embed(data),
-            view=MainView(data)
+            embed=build_embed(data, 0),
+            view=MainView(data, 0)
+
         )
     except Exception as e:
         print("Dashboard update failed:", e)
@@ -493,16 +494,19 @@ class TabButton(discord.ui.Button):
         data = api_get(API_GET)
 
         await interaction.message.edit(
-            embed=build_embed(data),
+            embed=build_embed(data, 0),
             view=MainView(data, 0, self.tab)
+
         )
+
 
 class MainView(discord.ui.View):
     def __init__(self, data, page=0, tab="dashboard"):
-    self.data = data
-    self
-
         super().__init__(timeout=None)
+
+        self.data = data
+        self.page = page
+        self.tab = tab
 
         self.add_item(TabButton("⚡ Dashboard", "dashboard"))
         self.add_item(TabButton("🔍 Search", "search"))
@@ -512,10 +516,12 @@ class MainView(discord.ui.View):
             self.add_item(PrevButton())
             self.add_item(NextButton())
             self.add_item(GeneratorSelect(data))
+
         elif tab == "search":
             self.add_item(SearchSelect(data))
             self.add_item(CriticalButton())
             self.add_item(ShowAllButton())
+
         elif tab == "tools":
             self.add_item(AddButton())
             self.add_item(UndoButton())
