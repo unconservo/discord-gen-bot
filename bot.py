@@ -5,7 +5,6 @@ import requests
 import json
 import os
 import csv
-import pandas as pd
 import datetime
 
 # =========================
