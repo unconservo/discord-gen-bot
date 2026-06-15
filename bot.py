@@ -151,14 +151,19 @@ async def check_alerts():
 # ========================
 # EMBED
 # ========================
-def build_embed(data):
+
+def build_embed(data, page=0):
     embed = discord.Embed(title="⚡ Generator Dashboard", color=0x00ff99)
 
     if not data:
         embed.description = "No generators found"
         return embed
 
-    for g in data:
+    start = page * PER_PAGE
+    end = start + PER_PAGE
+    slice_data = data[start:end]
+
+    for g in slice_data:
         days = float(g["days"])
         status = "✅"
 
@@ -167,9 +172,47 @@ def build_embed(data):
         elif days <= 3:
             status = "⚠️"
 
-        embed.add_field(name=g["name"], value=f"{days:.1f} days {status}", inline=False)
+        embed.add_field(
+            name=g["name"],
+            value=f"{days:.1f} days {status}",
+            inline=False
+        )
+
+    total_pages = max(1, (len(data) - 1) // PER_PAGE + 1)
+    embed.set_footer(text=f"Page {page+1}/{total_pages}")
 
     return embed
+
+# ========================
+# PAGINATION BUTTONS
+# ========================
+class PrevButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="⬅️")
+
+    async def callback(self, interaction):
+        view = self.view
+        view.page = max(view.page - 1, 0)
+
+        await interaction.response.edit_message(
+            embed=build_embed(view.data, view.page),
+            view=view
+        )
+
+class NextButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="➡️")
+
+    async def callback(self, interaction):
+        view = self.view
+        max_page = (len(view.data) - 1) // PER_PAGE
+        view.page = min(view.page + 1, max_page)
+
+        await interaction.response.edit_message(
+            embed=build_embed(view.data, view.page),
+            view=view
+        )
+
 
 # ========================
 # MODALS
@@ -451,11 +494,14 @@ class TabButton(discord.ui.Button):
 
         await interaction.message.edit(
             embed=build_embed(data),
-            view=MainView(data, self.tab)
+            view=MainView(data, 0, self.tab)
         )
 
 class MainView(discord.ui.View):
-    def __init__(self, data, tab="dashboard"):
+    def __init__(self, data, page=0, tab="dashboard"):
+    self.data = data
+    self
+
         super().__init__(timeout=None)
 
         self.add_item(TabButton("⚡ Dashboard", "dashboard"))
@@ -463,6 +509,8 @@ class MainView(discord.ui.View):
         self.add_item(TabButton("📊 Tools", "tools"))
 
         if tab == "dashboard":
+            self.add_item(PrevButton())
+            self.add_item(NextButton())
             self.add_item(GeneratorSelect(data))
         elif tab == "search":
             self.add_item(SearchSelect(data))
@@ -487,8 +535,9 @@ async def gen_dashboard(interaction):
     ch = bot.get_channel(GEN_CHANNEL_ID)
 
     dashboard_message = await ch.send(
-        embed=build_embed(data),
-        view=MainView(data)
+        embed=build_embed(data, 0),
+        view=MainView(data, 0)
+
     )
 
     await interaction.response.send_message("✅ Dashboard ready", ephemeral=True)
