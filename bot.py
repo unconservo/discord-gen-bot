@@ -637,6 +637,7 @@ class CriticalButton(discord.ui.Button):
 
 
 
+
 class ShowAllButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="📋 Show All")
@@ -645,33 +646,48 @@ class ShowAllButton(discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
 
         data = await api_get(API_GET)
-
         view = self.view
 
-        # ✅ Apply filter ONLY if it matches actual data
+        # ✅ Apply server filter
         if view.server_filter:
-            filtered = [
+            data = [
                 g for g in data
                 if str(g.get("server")).strip() == str(view.server_filter).strip()
             ]
-        else:
-            filtered = data
 
-        # ✅ Fallback if filtering results empty
-        if not filtered:
+        if not data:
             return await interaction.followup.send(
-                "❌ No generators found for this server\n(Try selecting 'All Servers')",
+                "❌ No generators found",
                 ephemeral=True
             )
 
-        filtered.sort(key=lambda g: float(g["days"]))
+        data.sort(key=lambda g: float(g["days"]))
 
-        msg = "\n".join([
+        lines = [
             f"{g['name']} → {g['days']}d"
-            for g in filtered
-        ])
+            for g in data
+        ]
 
-        await interaction.followup.send(msg, ephemeral=True)
+        # ✅ Split into 2000-char chunks
+        chunks = []
+        current = ""
+
+        for line in lines:
+            if len(current) + len(line) + 1 > 1900:
+                chunks.append(current)
+                current = line
+            else:
+                current += ("\n" if current else "") + line
+
+        if current:
+            chunks.append(current)
+
+        # ✅ Send first chunk
+        await interaction.followup.send(chunks[0], ephemeral=True)
+
+        # ✅ Send remaining chunks if any
+        for chunk in chunks[1:]:
+            await interaction.followup.send(chunk, ephemeral=True)
 
 
 # ========================
