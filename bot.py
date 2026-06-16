@@ -28,7 +28,7 @@ ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
 ALERT_CHANNEL_ID = 1516171257421500537  # ⚠️ your alerts channel
-ROLE_ID = 1363931104775635155          # ✅ alert role
+
 
 dashboard_message = None
 last_deleted = None
