@@ -188,6 +188,7 @@ def build_embed(data, page=0):
 # PAGINATION BUTTONS
 # ========================
 
+
 class PrevButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="⬅️")
@@ -202,9 +203,7 @@ class PrevButton(discord.ui.Button):
         )
 
 
-
-
-class NextButton(discord.ui.Button):class NextButtoninit__(self):
+class NextButton(discord.ui.Button):class NextButton(dis    def __init__(self):
         super().__init__(label="➡️")
 
     async def callback(self, interaction):
@@ -216,6 +215,7 @@ class NextButton(discord.ui.Button):class NextButtoninit__(self):
             embed=build_embed(view.data, new_page),
             view=MainView(view.data, new_page, view.tab)
         )
+
 
 
 
