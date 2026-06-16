@@ -601,6 +601,7 @@ class SearchSelect(discord.ui.Select):
 # SEARCH BUTTONS
 # ========================
 
+
 class CriticalButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="🚨 Critical")
@@ -611,22 +612,27 @@ class CriticalButton(discord.ui.Button):
         data = await api_get(API_GET)
 
         view = self.view
+
         if view.server_filter:
-            data = [g for g in data if g.get("server") == view.server_filter]
+            data = [
+                g for g in data
+                if str(g.get("server")).strip() == str(view.server_filter).strip()
+            ]
 
         crit = [g for g in data if float(g["days"]) <= 1]
 
         if not crit:
-            return await interaction.followup.send("✅ No critical generators", ephemeral=True)
+            return await interaction.followup.send(
+                "✅ No critical generators",
+                ephemeral=True
+            )
 
         msg = "\n".join([
             f"{g['name']} → {g['days']}d"
             for g in crit
         ])
 
-        
-        server_label = view.server_filter or "All Servers"
-        await interaction.followup.send(f"[{server_label}]\n{msg}", ephemeral=True)
+        await interaction.followup.send(msg, ephemeral=True)
 
 
 
@@ -641,23 +647,31 @@ class ShowAllButton(discord.ui.Button):
         data = await api_get(API_GET)
 
         view = self.view
+
+        # ✅ Apply filter ONLY if it matches actual data
         if view.server_filter:
-            data = [g for g in data if g.get("server") == view.server_filter]
+            filtered = [
+                g for g in data
+                if str(g.get("server")).strip() == str(view.server_filter).strip()
+            ]
+        else:
+            filtered = data
 
-        if not data:
-            return await interaction.followup.send("❌ No generators", ephemeral=True)
+        # ✅ Fallback if filtering results empty
+        if not filtered:
+            return await interaction.followup.send(
+                "❌ No generators found for this server\n(Try selecting 'All Servers')",
+                ephemeral=True
+            )
 
-        data.sort(key=lambda g: float(g["days"]))
+        filtered.sort(key=lambda g: float(g["days"]))
 
         msg = "\n".join([
             f"{g['name']} → {g['days']}d"
-            for g in data
+            for g in filtered
         ])
 
-        
-        server_label = view.server_filter or "All Servers"
-        await interaction.followup.send(f"[{server_label}]\n{msg}", ephemeral=True)
-
+        await interaction.followup.send(msg, ephemeral=True)
 
 
 # ========================
