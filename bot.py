@@ -330,7 +330,7 @@ class NextButton(discord.ui.Button):
 # ========================
 
 
-lass AddModal(discord.ui.Modal, title="Add Generator"):
+class AddModal(discord.ui.Modal, title="Add Generator"):
     name = discord.ui.TextInput(label="Name")
     days = discord.ui.TextInput(label="Days")
     server = discord.ui.TextInput(label="Server")
