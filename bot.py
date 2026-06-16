@@ -437,7 +437,7 @@ class GeneratorSelect(discord.ui.Select):
 
     
     
-sync def callback(self, interaction):
+async def callback(self, interaction):
     await interaction.response.defer()  # ✅ acknowledge immediately
 
     name = self.values[0]
