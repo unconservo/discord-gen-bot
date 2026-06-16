@@ -425,16 +425,20 @@ class GeneratorSelect(discord.ui.Select):
 
         super().__init__(placeholder="Select generator", options=options)
 
+    
     async def callback(self, interaction):
+        await interaction.response.defer()  # ✅ ADD THIS LINE
+
         name = self.values[0]
 
         await log_action(interaction.user, "select", name)
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"⚡ {name}",
             view=ActionView(name),
             ephemeral=True
         )
+
 
 
 class SearchSelect(discord.ui.Select):
@@ -654,20 +658,23 @@ class MainView(discord.ui.View):
 # ========================
 # COMMAND
 # ========================
+
 @bot.tree.command(name="gen_dashboard")
 async def gen_dashboard(interaction):
+    await interaction.response.defer(ephemeral=True)
+
     global dashboard_message
 
     data = await api_get(API_GET)
     ch = bot.get_channel(GEN_CHANNEL_ID)
 
     dashboard_message = await ch.send(
-        embed=build_embed(data, 0),
+        embed=build_embed(data, 0, None),
         view=MainView(data, 0)
-
     )
 
-    await interaction.response.send_message("✅ Dashboard ready", ephemeral=True)
+    await interaction.followup.send("✅ Dashboard ready", ephemeral=True)
+
 
 # ========================
 # READY
