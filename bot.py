@@ -599,11 +599,20 @@ class MainView(discord.ui.View):
         self.add_item(TabButton("📊 Tools", "tools"))
 
         
+        
         if tab == "dashboard":
-            self.add_item(ServerSelect(data))  # ✅ NEW
+            self.add_item(ServerSelect(data))
+
             self.add_item(PrevButton())
             self.add_item(NextButton())
-            self.add_item(GeneratorSelect(data, self.page))
+
+            # ✅ Apply server filter BEFORE giving to dropdown
+            filtered = data
+            if self.server_filter:
+                filtered = [g for g in data if g.get("server") == self.server_filter]
+
+            self.add_item(GeneratorSelect(filtered, self.page))
+
 
 
         elif tab == "search":
