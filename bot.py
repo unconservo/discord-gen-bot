@@ -1,4 +1,4 @@
-
+    
 import discord
 from discord.ext import commands, tasks
 import requests
@@ -669,14 +669,17 @@ class MainView(discord.ui.View):
 
 
         
+       
         elif tab == "search":
-            filtered = data
-            if self.server_filter:
-            filtered = [g for g in data if g.get("server") == self.server_filter]
+              filtered = data
 
-            self.add_item(SearchSelect(filtered))
-            self.add_item(CriticalButton())
-            self.add_item(ShowAllButton())
+              if self.server_filter:
+              filtered = [g for g in data if g.get("server") == self.server_filter]
+
+              self.add_item(SearchSelect(filtered))
+              self.add_item(CriticalButton())
+              self.add_item(ShowAllButton())
+
 
 
         elif tab == "tools":
