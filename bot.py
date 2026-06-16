@@ -187,33 +187,36 @@ def build_embed(data, page=0):
 # ========================
 # PAGINATION BUTTONS
 # ========================
+
 class PrevButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="⬅️")
 
-    
-async def callback(self, interaction):
-    view = self.view
-    new_page = max(view.page - 1, 0)
+    async def callback(self, interaction):
+        view = self.view
+        new_page = max(view.page - 1, 0)
 
-   .data, new_page),    await interaction.response.edit_message(
-        view=MainView(view.data, new_page, view.tab)
-    )
+        await interaction.response.edit_message(
+            embed=build_embed(view.data, new_page),
+            view=MainView(view.data, new_page, view.tab)
+        )
 
 
-class NextButton(discord.ui.Button):
-    def __init__(self):
+
+
+class NextButton(discord.ui.Button):class NextButtoninit__(self):
         super().__init__(label="➡️")
 
-    
-async def callback(self, interaction):
-_page = (len(view.data) - 1) // PER_PAGE    view = self.view
-    new_page = min(view.page + 1, max_page)
+    async def callback(self, interaction):
+        view = self.view
+        max_page = (len(view.data) - 1) // PER_PAGE
+        new_page = min(view.page + 1, max_page)
 
-    await interaction.response.edit_message(
-        embed=build_embed(view.data, new_page),
-        view=MainView(view.data, new_page, view.tab)
-    )
+        await interaction.response.edit_message(
+            embed=build_embed(view.data, new_page),
+            view=MainView(view.data, new_page, view.tab)
+        )
+
 
 
 
