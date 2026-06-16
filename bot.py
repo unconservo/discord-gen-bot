@@ -638,50 +638,51 @@ class TabButton(discord.ui.Button):
 
 
 
+
 class MainView(discord.ui.View):
     def __init__(self, data, page=0, tab="dashboard", server_filter=None):
-        self.server_filter = server_filter
         super().__init__(timeout=None)
 
         self.data = data
         self.page = page
         self.tab = tab
+        self.server_filter = server_filter
 
+        # ✅ Tabs
         self.add_item(TabButton("⚡ Dashboard", "dashboard"))
         self.add_item(TabButton("🔍 Search", "search"))
         self.add_item(TabButton("📊 Tools", "tools"))
 
-        
-        
+        # =========================
+        # DASHBOARD TAB
+        # =========================
         if tab == "dashboard":
             self.add_item(ServerSelect(data))
-
             self.add_item(PrevButton())
             self.add_item(NextButton())
 
-            # ✅ Apply server filter BEFORE giving to dropdown
             filtered = data
             if self.server_filter:
                 filtered = [g for g in data if g.get("server") == self.server_filter]
 
             self.add_item(GeneratorSelect(filtered, self.page))
 
-
-
-        
-       
+        # =========================
+        # SEARCH TAB ✅ FIXED
+        # =========================
         elif tab == "search":
-              filtered = data
+            filtered = data
 
-              if self.server_filter:
-              filtered = [g for g in data if g.get("server") == self.server_filter]
+            if self.server_filter:
+                filtered = [g for g in data if g.get("server") == self.server_filter]
 
-              self.add_item(SearchSelect(filtered))
-              self.add_item(CriticalButton())
-              self.add_item(ShowAllButton())
+            self.add_item(SearchSelect(filtered))
+            self.add_item(CriticalButton())
+            self.add_item(ShowAllButton())
 
-
-
+        # =========================
+        # TOOLS TAB
+        # =========================
         elif tab == "tools":
             self.add_item(AddButton())
             self.add_item(UndoButton())
@@ -689,6 +690,7 @@ class MainView(discord.ui.View):
             self.add_item(CSVButton())
             self.add_item(ResetAlertsButton())
             self.add_item(HelpButton())
+
 
 # ========================
 # COMMAND
