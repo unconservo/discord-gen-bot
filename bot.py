@@ -84,13 +84,16 @@ async def api_get(url, params=None):
         return {}
 
 
+
 # ========================
-# LOGGING
+# LOGGING ✅ UPDATED
 # ========================
-async def log_action(user, action, target=""):
+async def log_action(user, action, name, server):
     ch = bot.get_channel(LOG_CHANNEL_ID)
     if ch:
-        await ch.send(f"📋 {user} → {action} → {target}")
+        await ch.send(
+            f"📋 {user} → {action} → {name} [{server}]"
+        )
 
 # ========================
 # REFRESH DASHBOARD
@@ -326,7 +329,8 @@ class NextButton(discord.ui.Button):
 # MODALS
 # ========================
 
-class AddModal(discord.ui.Modal, title="Add Generator"):
+
+lass AddModal(discord.ui.Modal, title="Add Generator"):
     name = discord.ui.TextInput(label="Name")
     days = discord.ui.TextInput(label="Days")
     server = discord.ui.TextInput(label="Server")
@@ -339,17 +343,25 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
         except:
             return await interaction.followup.send("❌ Invalid number", ephemeral=True)
 
-        # ✅ FIXED INDENTATION
+        # ✅ Add generator
         await api_get(API_ADD, {
             "name": self.name.value,
             "days": val,
             "server": self.server.value
         })
 
-        await log_action(interaction.user, "add", f"{self.name.value} → {val}d")
+        # ✅ Log (ADD)
+        await log_action(
+            interaction.user,
+            "ADD",
+            self.name.value,
+            self.server.value
+        )
+
         await interaction.followup.send("✅ Generator added", ephemeral=True)
 
         await refresh_dashboard()
+
 
 
 
@@ -357,8 +369,8 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
     days = discord.ui.TextInput(label="Set Days")
 
     def __init__(self, name):
-        self.name = name
         super().__init__()
+        self.name = name
 
     async def on_submit(self, interaction):
         await interaction.response.defer(ephemeral=True)
@@ -368,15 +380,29 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
         except:
             return await interaction.followup.send("❌ Invalid number", ephemeral=True)
 
-        # ✅ FIXED INDENT
+        # ✅ Update fuel
         await api_get(API_UPDATE, {
             "name": self.name,
             "days": val
         })
 
+        # ✅ Store user for alert system
         last_refuel_user[self.name] = interaction.user.name
 
-        await log_action(interaction.user, "refuel", f"{self.name} → {val}d")
+        # ✅ Get server from API
+        data = await api_get(API_GET)
+        server = next(
+            (g.get("server") for g in data if g["name"] == self.name),
+            "Unknown"
+        )
+
+        # ✅ Log (UPDATE)
+        await log_action(
+            interaction.user,
+            "UPDATE",
+            self.name,
+            server
+        )
 
         await interaction.followup.send(
             f"✅ {self.name} updated to {val:.1f} days",
@@ -389,6 +415,7 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
 # ========================
 # DELETE
 # ========================
+
 class ConfirmDelete(discord.ui.View):
     def __init__(self, name):
         super().__init__()
@@ -400,13 +427,29 @@ class ConfirmDelete(discord.ui.View):
 
         await interaction.response.defer(ephemeral=True)
 
+        # ✅ Get server BEFORE deleting
+        data = await api_get(API_GET)
+        server = next(
+            (g.get("server") for g in data if g["name"] == self.name),
+            "Unknown"
+        )
+
+        # ✅ Delete
         await api_get(API_DELETE, {"name": self.name})
         last_deleted = self.name
 
-        await log_action(interaction.user, "delete", self.name)
+        # ✅ Log (DELETE)
+        await log_action(
+            interaction.user,
+            "DELETE",
+            self.name,
+            server
+        )
+
         await interaction.followup.send("✅ Deleted", ephemeral=True)
 
         await refresh_dashboard()
+
 
 # ========================
 # ACTION VIEW
