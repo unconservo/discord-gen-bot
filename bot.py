@@ -336,6 +336,7 @@ class NextButton(discord.ui.Button):
 # ========================
 
 
+
 class AddModal(discord.ui.Modal, title="Add Generator"):
     name = discord.ui.TextInput(label="Name")
     days = discord.ui.TextInput(label="Days")
@@ -347,7 +348,10 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
         try:
             val = float(self.days.value)
         except:
-            return await interaction.followup.send("❌ Invalid number", ephemeral=True)
+            return await interaction.followup.send(
+                "❌ Invalid number",
+                ephemeral=True
+            )
 
         # ✅ Add generator
         await api_get(API_ADD, {
@@ -356,20 +360,23 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
             "server": self.server.value
         })
 
-        # ✅ Log (ADD)
-        
-       await log_action(
-           interaction.user,
-           "ADD",
-           self.name.value,
-           self.server.value,
-           f"{val:.1f}d"
-      )
+        # ✅ Log ADD with value
+        await log_action(
+            interaction.user,
+            "ADD",
+            self.name.value,
+            self.server.value,
+            f"{val:.1f}d"
+        )
 
-
-        await interaction.followup.send("✅ Generator added", ephemeral=True)
+        await interaction.followup.send(
+            "✅ Generator added",
+            ephemeral=True
+        )
 
         await refresh_dashboard()
+
+
 
 
 
@@ -387,34 +394,35 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
         try:
             val = float(self.days.value)
         except:
-            return await interaction.followup.send("❌ Invalid number", ephemeral=True)
+            return await interaction.followup.send(
+                "❌ Invalid number",
+                ephemeral=True
+            )
 
-        # ✅ Update fuel
+        # ✅ Update generator
         await api_get(API_UPDATE, {
             "name": self.name,
             "days": val
         })
 
-        # ✅ Store user for alert system
+        # ✅ Track who refueled (for alerts)
         last_refuel_user[self.name] = interaction.user.name
 
-        # ✅ Get server from API
+        # ✅ Get server
         data = await api_get(API_GET)
         server = next(
             (g.get("server") for g in data if g["name"] == self.name),
             "Unknown"
         )
 
-        # ✅ Log (UPDATE)
-        
+        # ✅ Log UPDATE with value
         await log_action(
-           interaction.user,
-           "UPDATE",
-           self.name,
-           server,
-           f"{val:.1f}d"
-       )
-
+            interaction.user,
+            "UPDATE",
+            self.name,
+            server,
+            f"{val:.1f}d"
+        )
 
         await interaction.followup.send(
             f"✅ {self.name} updated to {val:.1f} days",
@@ -424,9 +432,11 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
         await refresh_dashboard()
 
 
+
 # ========================
 # DELETE
 # ========================
+
 
 class ConfirmDelete(discord.ui.View):
     def __init__(self, name):
@@ -439,18 +449,21 @@ class ConfirmDelete(discord.ui.View):
 
         await interaction.response.defer(ephemeral=True)
 
-        # ✅ Get server BEFORE deleting
+        # ✅ Get server BEFORE delete
         data = await api_get(API_GET)
         server = next(
             (g.get("server") for g in data if g["name"] == self.name),
             "Unknown"
         )
 
-        # ✅ Delete
-        await api_get(API_DELETE, {"name": self.name})
+        # ✅ Delete generator
+        await api_get(API_DELETE, {
+            "name": self.name
+        })
+
         last_deleted = self.name
 
-        # ✅ Log (DELETE)
+        # ✅ Log DELETE (no value needed)
         await log_action(
             interaction.user,
             "DELETE",
@@ -458,9 +471,13 @@ class ConfirmDelete(discord.ui.View):
             server
         )
 
-        await interaction.followup.send("✅ Deleted", ephemeral=True)
+        await interaction.followup.send(
+            "✅ Deleted",
+            ephemeral=True
+        )
 
         await refresh_dashboard()
+
 
 
 # ========================
