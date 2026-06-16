@@ -172,7 +172,9 @@ def build_embed(data, page=0):
     if not data:
         embed.description = "No generators found"
         return embed
-
+    
+    # ✅ SORT LOWEST FIRST    
+    data.sort(key=lambda g: float(g["days"]))
     start = page * PER_PAGE
     end = start + PER_PAGE
     slice_data = data[start:end]
