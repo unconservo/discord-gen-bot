@@ -186,7 +186,11 @@ def format_time(days):
         return f"{m}m"
 
 
-def build_embed(data, page=0):
+def build_embed(data, page=0, server_filter=None):
+    
+    if server_filter:
+        data = [g for g in data if g.get("server") == server_filter]
+
     embed = discord.Embed(title="⚡ Generator Dashboard", color=0x00ff99)
 
     if not data:
@@ -241,7 +245,7 @@ class PrevButton(discord.ui.Button):
 
         await interaction.response.edit_message(
             embed=build_embed(view.data, new_page),
-            view=MainView(view.data, new_page, view.tab)
+            view=MainView(view.data, new_page, view.tab, view.server_filter)
         )
 
 
@@ -256,7 +260,7 @@ class NextButton(discord.ui.Button):
 
         await interaction.response.edit_message(
             embed=build_embed(view.data, new_page),
-            view=MainView(view.data, new_page, view.tab)
+            view=MainView(view.data, new_page, view.tab, view.server_filter)
         )
 
 
@@ -359,6 +363,27 @@ class ActionView(discord.ui.View):
 # SELECTS
 # ========================
 
+
+class ServerSelect(discord.ui.Select):
+    def __init__(self, data):
+        servers = list(set(g.get("server", "Unknown") for g in data))
+        servers.sort()
+
+        options = [discord.SelectOption(label="All Servers", value="ALL")]
+        options += [discord.SelectOption(label=s, value=s) for s in servers]
+
+        super().__init__(placeholder="Filter by server...", options=options)
+
+    async def callback(self, interaction):
+        view = self.view
+        selected = self.values[0]
+
+        view.server_filter = selected if selected != "ALL" else None
+
+        await interaction.response.edit_message(
+            build_embed(data, page, view.server_filter if hasattr(view, "server_filter") else None)
+            view=MainView(view.data, view.page, view.tab, view.server_filter)
+        )
 
 
 class GeneratorSelect(discord.ui.Select):
@@ -556,8 +581,10 @@ class TabButton(discord.ui.Button):
         )
 
 
+
 class MainView(discord.ui.View):
-    def __init__(self, data, page=0, tab="dashboard"):
+    def __init__(self, data, page=0, tab="dashboard", server_filter=None):
+        self.server_filter = server_filter
         super().__init__(timeout=None)
 
         self.data = data
@@ -568,10 +595,13 @@ class MainView(discord.ui.View):
         self.add_item(TabButton("🔍 Search", "search"))
         self.add_item(TabButton("📊 Tools", "tools"))
 
+        
         if tab == "dashboard":
+            self.add_item(ServerSelect(data))  # ✅ NEW
             self.add_item(PrevButton())
             self.add_item(NextButton())
             self.add_item(GeneratorSelect(data, self.page))
+
 
         elif tab == "search":
             self.add_item(SearchSelect(data))
