@@ -640,7 +640,7 @@ class TabButton(discord.ui.Button):
 
 
 
-lass MainView(discord.ui.View):
+class MainView(discord.ui.View):
     def __init__(self, data, page=0, tab="dashboard", server_filter=None):
         super().__init__(timeout=None)
 
