@@ -179,45 +179,46 @@ def format_time(days):
     else:
         return f"{m}m"
 
+
 def build_embed(data, page=0):
     embed = discord.Embed(title="⚡ Generator Dashboard", color=0x00ff99)
 
     if not data:
         embed.description = "No generators found"
         return embed
-    
-    # ✅ SORT LOWEST FIRST    
+
+    # ✅ SORT LOWEST FIRST
     data.sort(key=lambda g: float(g["days"]))
+
     start = page * PER_PAGE
     end = start + PER_PAGE
     slice_data = data[start:end]
 
-    
-for g in slice_data:
-    days = float(g["days"])
+    for g in slice_data:
+        days = float(g["days"])
 
-    name_text = g["name"]
+        name_text = g["name"]
 
-    if days <= 1:
-        name_text = f"🚨 {g['name']} 🚨"
-        value = f"**{format_time(days)} CRITICAL 🚨**"
-    elif days <= 3:
-        name_text = f"⚠️ {g['name']}"
-        value = f"**{format_time(days)} LOW ⚠️**"
-    else:
-        value = f"{format_time(days)} ✅"
+        if days <= 1:
+            name_text = f"🚨 {g['name']} 🚨"
+            value = f"**{format_time(days)} CRITICAL 🚨**"
+        elif days <= 3:
+            name_text = f"⚠️ {g['name']}"
+            value = f"**{format_time(days)} LOW ⚠️**"
+        else:
+            value = f"{format_time(days)} ✅"
 
-    embed.add_field(
-        name=name_text,
-        value=value,
-        inline=False
-    )
-
+        embed.add_field(
+            name=name_text,
+            value=value,
+            inline=False
+        )
 
     total_pages = max(1, (len(data) - 1) // PER_PAGE + 1)
     embed.set_footer(text=f"Page {page+1}/{total_pages}")
 
     return embed
+
 
 # ========================
 # PAGINATION BUTTONS
