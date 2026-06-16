@@ -639,7 +639,8 @@ class TabButton(discord.ui.Button):
 
 
 
-class MainView(discord.ui.View):
+
+lass MainView(discord.ui.View):
     def __init__(self, data, page=0, tab="dashboard", server_filter=None):
         super().__init__(timeout=None)
 
@@ -648,7 +649,9 @@ class MainView(discord.ui.View):
         self.tab = tab
         self.server_filter = server_filter
 
-        # ✅ Tabs
+        # =========================
+        # TABS
+        # =========================
         self.add_item(TabButton("⚡ Dashboard", "dashboard"))
         self.add_item(TabButton("🔍 Search", "search"))
         self.add_item(TabButton("📊 Tools", "tools"))
@@ -668,15 +671,26 @@ class MainView(discord.ui.View):
             self.add_item(GeneratorSelect(filtered, self.page))
 
         # =========================
-        # SEARCH TAB ✅ FIXED
+        # SEARCH TAB ✅ WITH PAGINATION
         # =========================
         elif tab == "search":
             filtered = data
-
             if self.server_filter:
                 filtered = [g for g in data if g.get("server") == self.server_filter]
 
-            self.add_item(SearchSelect(filtered))
+            # ✅ Pagination for search
+            start = self.page * PER_PAGE
+            end = start + PER_PAGE
+            page_data = filtered[start:end]
+
+            # ✅ Pagination buttons
+            self.add_item(PrevButton())
+            self.add_item(NextButton())
+
+            # ✅ Dropdown only shows current page
+            self.add_item(SearchSelect(page_data))
+
+            # ✅ Buttons use full filtered list
             self.add_item(CriticalButton())
             self.add_item(ShowAllButton())
 
