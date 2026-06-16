@@ -312,11 +312,18 @@ class ActionView(discord.ui.View):
 # ========================
 # SELECTS
 # ========================
+
 class GeneratorSelect(discord.ui.Select):
-    def __init__(self, data):
-        options = [discord.SelectOption(label=g["name"]) for g in data[:25]] or [
-            discord.SelectOption(label="No generators")
-        ]
+    def __init__(self, data, page=0):
+        start = page * PER_PAGE
+        end = start + PER_PAGE
+        page_data = data[start:end]
+
+        options = [discord.SelectOption(label=g["name"]) for g in page_data]
+
+        if not options:
+            options = [discord.SelectOption(label="No generators")]
+
         super().__init__(placeholder="Select generator", options=options)
 
     async def callback(self, interaction):
@@ -515,7 +522,7 @@ class MainView(discord.ui.View):
         if tab == "dashboard":
             self.add_item(PrevButton())
             self.add_item(NextButton())
-            self.add_item(GeneratorSelect(data))
+            self.add_item(GeneratorSelect(data, self.page))
 
         elif tab == "search":
             self.add_item(SearchSelect(data))
