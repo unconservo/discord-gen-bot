@@ -6,6 +6,7 @@ import json
 import os
 import csv
 import datetime
+import aiohttp
 
 # =========================
 # CONFIG (CHANGE THESE)
