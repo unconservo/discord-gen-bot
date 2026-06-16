@@ -84,15 +84,22 @@ async def api_get(url, params=None):
 
 
 
+
 # ========================
-# LOGGING ✅ UPDATED
+# LOGGING ✅ FINAL VERSION
 # ========================
-async def log_action(user, action, name, server):
+async def log_action(user, action, name, server, value=None):
     ch = bot.get_channel(LOG_CHANNEL_ID)
-    if ch:
-        await ch.send(
-            f"📋 {user} → {action} → {name} [{server}]"
-        )
+    if not ch:
+        return
+
+    # ✅ Format value (optional)
+    value_text = f" → {value}" if value is not None else ""
+
+    await ch.send(
+        f"📋 {user} → {action} → {name} [{server}]{value_text}"
+    )
+
 
 # ========================
 # REFRESH DASHBOARD
@@ -350,12 +357,15 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
         })
 
         # ✅ Log (ADD)
-        await log_action(
-            interaction.user,
-            "ADD",
-            self.name.value,
-            self.server.value
-        )
+        
+       await log_action(
+           interaction.user,
+           "ADD",
+           self.name.value,
+           self.server.value,
+           f"{val:.1f}d"
+      )
+
 
         await interaction.followup.send("✅ Generator added", ephemeral=True)
 
@@ -396,12 +406,15 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
         )
 
         # ✅ Log (UPDATE)
+        
         await log_action(
-            interaction.user,
-            "UPDATE",
-            self.name,
-            server
-        )
+           interaction.user,
+           "UPDATE",
+           self.name,
+           server,
+           f"{val:.1f}d"
+       )
+
 
         await interaction.followup.send(
             f"✅ {self.name} updated to {val:.1f} days",
