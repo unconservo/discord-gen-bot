@@ -192,18 +192,22 @@ def format_time(days):
         return f"{m}m"
 
 
+
 def build_embed(data, page=0, server_filter=None):
-    
+
     if server_filter:
         data = [g for g in data if g.get("server") == server_filter]
 
-    embed = discord.Embed(title="⚡ Generator Dashboard", color=0x00ff99)
+    title = "⚡ Generator Dashboard"
+    if server_filter:
+        title += f" — {server_filter}"
+
+    embed = discord.Embed(title=title, color=0x00ff99)
 
     if not data:
         embed.description = "No generators found"
         return embed
 
-    # ✅ SORT LOWEST FIRST
     data.sort(key=lambda g: float(g["days"]))
 
     start = page * PER_PAGE
@@ -234,6 +238,7 @@ def build_embed(data, page=0, server_filter=None):
     embed.set_footer(text=f"Page {page+1}/{total_pages}")
 
     return embed
+
 
 
 # ========================
@@ -388,6 +393,7 @@ class ActionView(discord.ui.View):
 
 
 
+
 class ServerSelect(discord.ui.Select):
     def __init__(self, data):
         servers = list(set(g.get("server", "Unknown") for g in data))
@@ -396,7 +402,10 @@ class ServerSelect(discord.ui.Select):
         options = [discord.SelectOption(label="All Servers", value="ALL")]
         options += [discord.SelectOption(label=s, value=s) for s in servers]
 
-        super().__init__(placeholder="Filter by server...", options=options)
+        super().__init__(
+            placeholder="Filter by server...",
+            options=options
+        )
 
     async def callback(self, interaction):
         view = self.view
@@ -408,6 +417,7 @@ class ServerSelect(discord.ui.Select):
             embed=build_embed(view.data, view.page, view.server_filter),
             view=MainView(view.data, view.page, view.tab, view.server_filter)
         )
+
 
 
 
@@ -438,14 +448,19 @@ class GeneratorSelect(discord.ui.Select):
 
 
 
+
 class SearchSelect(discord.ui.Select):
     def __init__(self, data):
-        options = [discord.SelectOption(label=g["name"]) for g in data[:25]]
+        options = [discord.SelectOption(label=g["name"]) for g in data]
 
         if not options:
             options = [discord.SelectOption(label="No generators")]
 
-        super().__init__(placeholder="Search generator...", options=options)
+        super().__init__(
+            placeholder="Search generator...",
+            options=options
+        )
+
         self.data = data
 
     async def callback(self, interaction):
@@ -454,7 +469,10 @@ class SearchSelect(discord.ui.Select):
         result = [g for g in self.data if g["name"] == name]
 
         if not result:
-            return await interaction.response.send_message("❌ Not found", ephemeral=True)
+            return await interaction.response.send_message(
+                "❌ Not found",
+                ephemeral=True
+            )
 
         msg = "\n".join([
             f"{g['name']} → {format_time(float(g['days']))}"
@@ -462,6 +480,7 @@ class SearchSelect(discord.ui.Select):
         ])
 
         await interaction.response.send_message(msg, ephemeral=True)
+
 
 
 # ========================
@@ -640,6 +659,7 @@ class TabButton(discord.ui.Button):
 
 
 
+
 class MainView(discord.ui.View):
     def __init__(self, data, page=0, tab="dashboard", server_filter=None):
         super().__init__(timeout=None)
@@ -649,9 +669,7 @@ class MainView(discord.ui.View):
         self.tab = tab
         self.server_filter = server_filter
 
-        # =========================
-        # TABS
-        # =========================
+        # Tabs
         self.add_item(TabButton("⚡ Dashboard", "dashboard"))
         self.add_item(TabButton("🔍 Search", "search"))
         self.add_item(TabButton("📊 Tools", "tools"))
@@ -671,28 +689,36 @@ class MainView(discord.ui.View):
             self.add_item(GeneratorSelect(filtered, self.page))
 
         # =========================
-        # SEARCH TAB ✅ WITH PAGINATION
+        # SEARCH TAB ✅ FULL FIX
         # =========================
         elif tab == "search":
+            self.add_item(ServerSelect(data))
+
             filtered = data
             if self.server_filter:
                 filtered = [g for g in data if g.get("server") == self.server_filter]
 
-            # ✅ Pagination for search
             start = self.page * PER_PAGE
             end = start + PER_PAGE
             page_data = filtered[start:end]
 
-            # ✅ Pagination buttons
             self.add_item(PrevButton())
             self.add_item(NextButton())
-
-            # ✅ Dropdown only shows current page
             self.add_item(SearchSelect(page_data))
-
-            # ✅ Buttons use full filtered list
             self.add_item(CriticalButton())
             self.add_item(ShowAllButton())
+
+        # =========================
+        # TOOLS TAB
+        # =========================
+        elif tab == "tools":
+            self.add_item(AddButton())
+            self.add_item(UndoButton())
+            self.add_item(BackupButton())
+            self.add_item(CSVButton())
+            self.add_item(ResetAlertsButton())
+            self.add_item(HelpButton())
+
 
         # =========================
         # TOOLS TAB
