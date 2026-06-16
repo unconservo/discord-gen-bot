@@ -102,51 +102,64 @@ async def refresh_dashboard():
     except Exception as e:
         print("Dashboard update failed:", e)
 
+
 # ========================
 # ALERT SYSTEM ✅ UPDATED
 # ========================
+@tasks.loop(minutes=10)
+async def check_alerts():
+    data = api_get(API_GET)
+    ch = bot.get_channel(ALERT_CHANNEL_ID)
+
+    if not ch:
+        return
+
+    for g in data:
+        name = g["name"]
+        days = float(g["days"])
+        hours = days * 24
+
+        prev = last_alerts.get(name)
+
+        # 🚨 CRITICAL (<= 1 hour)
+        if hours <= 1:
+            if not prev or prev["state"] != "critical":
+                msg = await ch.send(f"🚨 <@&{ROLE_ID}> {name} CRITICAL ({format_time(days)})")
+                last_alerts[name] = {"state": "critical", "message": msg}
+
+        # ⚠️ VERY LOW (<= 3 hours)
+        elif hours <= 3:
+            if not prev or prev["state"] != "very_low":
+                msg = await ch.send(f"⚠️ {name} VERY LOW ({format_time(days)})")
+                last_alerts[name] = {"state": "very_low", "message": msg}
+
+        # ⚠️ LOW (<= 6 hours)
+        elif hours <= 6:
+            if not prev or prev["state"] != "low":
+                msg = await ch.send(f"⚠️ {name} LOW ({format_time(days)})")
+                last_alerts[name] = {"state": "low", "message": msg}
+
+        # ✅ RESOLVED
+        else:
+            if prev:
+                user = last_refuel_user.get(name, "Unknown")
+
+                try:
+                    await prev["message"].edit(
+                        content=f"✅ {name} resolved by **{user}** ({format_time(days)})"
+                    )
+                except:
+                    pass
+
+                del last_alerts[name]
+
+                if name in last_refuel_user:
+                    del last_refuel_user[name]
 
 @tasks.loop(minutes=5)
 async def auto_refresh():
     await refresh_dashboard()
 
-hours = days * 24
-prev = last_alerts.get(name)
-
-# 🚨 CRITICAL (<= 1 hour)
-if hours <= 1:
-    if not prev or prev["state"] != "critical":
-        msg = await ch.send(f"🚨 <@&{ROLE_ID}> {name} CRITICAL ({format_time(days)})")
-        last_alerts[name] = {"state": "critical", "message": msg}
-
-# ⚠️ VERY LOW (<= 3 hours)
-elif hours <= 3:
-    if not prev or prev["state"] != "very_low":
-        msg = await ch.send(f"⚠️ {name} VERY LOW ({format_time(days)})")
-        last_alerts[name] = {"state": "very_low", "message": msg}
-
-# ⚠️ LOW (<= 6 hours)
-elif hours <= 6:
-    if not prev or prev["state"] != "low":
-        msg = await ch.send(f"⚠️ {name} LOW ({format_time(days)})")
-        last_alerts[name] = {"state": "low", "message": msg}
-
-# ✅ RESOLVED
-else:
-    if prev:
-        user = last_refuel_user.get(name, "Unknown")
-
-        try:
-            await prev["message"].edit(
-                content=f"✅ {name} resolved by **{user}** ({format_time(days)})"
-            )
-        except:
-            pass
-
-        del last_alerts[name]
-
-        if name in last_refuel_user:
-            del last_refuel_user[name]
 
 # ========================
 # EMBED
