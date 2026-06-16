@@ -105,7 +105,11 @@ async def refresh_dashboard():
 # ========================
 # ALERT SYSTEM ✅ UPDATED
 # ========================
-@tasks.loop(minutes=10)
+
+@tasks.loop(minutes=5)
+async def auto_refresh():
+    await refresh_dashboard()
+
 hours = days * 24
 prev = last_alerts.get(name)
 
@@ -576,10 +580,13 @@ async def gen_dashboard(interaction):
 # ========================
 # READY
 # ========================
+
 @bot.event
 async def on_ready():
     await bot.tree.sync()
     check_alerts.start()
+    auto_refresh.start()
     print(f"✅ Logged in as {bot.user}")
+
 
 bot.run(TOKEN)
