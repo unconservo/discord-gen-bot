@@ -95,8 +95,9 @@ async def refresh_dashboard():
 
     try:
         await dashboard_message.edit(
-            embed=build_embed(data, 0),
-            view=MainView(data, 0)
+            embed=build_embed(data, 0, None),
+            view=MainView(data, 0, "dashboard", None)
+
 
         )
     except Exception as e:
@@ -244,7 +245,7 @@ class PrevButton(discord.ui.Button):
         new_page = max(view.page - 1, 0)
 
         await interaction.response.edit_message(
-            embed=build_embed(view.data, new_page),
+            embed=build_embed(view.data, new_page, view.server_filter),
             view=MainView(view.data, new_page, view.tab, view.server_filter)
         )
 
@@ -259,7 +260,7 @@ class NextButton(discord.ui.Button):
         new_page = min(view.page + 1, max_page)
 
         await interaction.response.edit_message(
-            embed=build_embed(view.data, new_page),
+            embed=build_embed(view.data, new_page, view.server_filter),
             view=MainView(view.data, new_page, view.tab, view.server_filter)
         )
 
@@ -380,10 +381,12 @@ class ServerSelect(discord.ui.Select):
 
         view.server_filter = selected if selected != "ALL" else None
 
+        
         await interaction.response.edit_message(
-            build_embed(data, page, view.server_filter if hasattr(view, "server_filter") else None)
+            embed=build_embed(view.data, view.page, view.server_filter),
             view=MainView(view.data, view.page, view.tab, view.server_filter)
         )
+
 
 
 class GeneratorSelect(discord.ui.Select):
@@ -575,8 +578,8 @@ class TabButton(discord.ui.Button):
         data = api_get(API_GET)
 
         await interaction.message.edit(
-            embed=build_embed(data, 0),
-            view=MainView(data, 0, self.tab)
+            embed=build_embed(data, 0, None),
+            view=MainView(data, 0, self.tab, None)
 
         )
 
