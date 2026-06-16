@@ -240,18 +240,16 @@ def build_embed(data, page=0, server_filter=None):
 # ========================
 
 
+
 class PrevButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="⬅️")
 
-       
     async def callback(self, interaction):
-        await interaction.response.defer()
-
         view = self.view
         new_page = max(view.page - 1, 0)
 
-        await interaction.message.edit(
+        await interaction.response.edit_message(
             embed=build_embed(view.data, new_page, view.server_filter),
             view=MainView(view.data, new_page, view.tab, view.server_filter)
         )
@@ -262,17 +260,16 @@ class NextButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="➡️")
 
-    
     async def callback(self, interaction):
-        await interaction.response.defer()
-
         view = self.view
-        new_page = max(view.page - 1, 0)
+        max_page = (len(view.data) - 1) // PER_PAGE
+        new_page = min(view.page + 1, max_page)
 
-        await interaction.message.edit(
+        await interaction.response.edit_message(
             embed=build_embed(view.data, new_page, view.server_filter),
             view=MainView(view.data, new_page, view.tab, view.server_filter)
         )
+
 
 
 
@@ -389,6 +386,7 @@ class ActionView(discord.ui.View):
 
 
 
+
 class ServerSelect(discord.ui.Select):
     def __init__(self, data):
         servers = list(set(g.get("server", "Unknown") for g in data))
@@ -399,26 +397,16 @@ class ServerSelect(discord.ui.Select):
 
         super().__init__(placeholder="Filter by server...", options=options)
 
-    async def callback(self, interaction):   # ✅ CORRECT LEVEL
-        await interaction.response.defer()
-
+    async def callback(self, interaction):
         view = self.view
         selected = self.values[0]
 
         view.server_filter = selected if selected != "ALL" else None
 
-        await interaction.message.edit(
+        await interaction.response.edit_message(
             embed=build_embed(view.data, view.page, view.server_filter),
             view=MainView(view.data, view.page, view.tab, view.server_filter)
         )
-
-        await interaction.followup.send(
-            f"✅ Filter set to: {view.server_filter or 'All Servers'}",
-            ephemeral=True
-        )
-
-
-
 
 
 
@@ -435,14 +423,10 @@ class GeneratorSelect(discord.ui.Select):
 
         super().__init__(placeholder="Select generator", options=options)
 
-    async def callback(self, interaction):  # ✅ CORRECT LEVEL
-        await interaction.response.defer()
-
+    async def callback(self, interaction):
         name = self.values[0]
 
-        await log_action(interaction.user, "select", name)
-
-        await interaction.followup.send(
+        await interaction.response.send_message(
             f"⚡ {name}",
             view=ActionView(name),
             ephemeral=True
@@ -605,21 +589,20 @@ Alerts auto-track + resolve with user info ✅
 # ========================
 # TABS (SAFE FIX)
 # ========================
+
 class TabButton(discord.ui.Button):
     def __init__(self, label, tab):
         super().__init__(label=label)
         self.tab = tab
 
     async def callback(self, interaction):
-        await interaction.response.defer()
-
         data = await api_get(API_GET)
 
-        await interaction.message.edit(
+        await interaction.response.edit_message(
             embed=build_embed(data, 0, None),
             view=MainView(data, 0, self.tab, None)
-
         )
+
 
 
 
