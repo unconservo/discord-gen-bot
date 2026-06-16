@@ -437,6 +437,7 @@ class GeneratorSelect(discord.ui.Select):
 
 
 
+
 class SearchSelect(discord.ui.Select):
     def __init__(self, data):
         options = [discord.SelectOption(label=g["name"]) for g in data[:25]]
@@ -455,14 +456,18 @@ class SearchSelect(discord.ui.Select):
         if not result:
             return await interaction.response.send_message("❌ Not found", ephemeral=True)
 
-        msg = "\n".join([f"{g['name']} → {format_time(float(g['days']))}" for g in result])
+        msg = "\n".join([
+            f"{g['name']} → {format_time(float(g['days']))}"
+            for g in result
+        ])
 
-        await log_action(interaction.user, "search", name)
         await interaction.response.send_message(msg, ephemeral=True)
+
 
 # ========================
 # SEARCH BUTTONS
 # ========================
+
 class CriticalButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="🚨 Critical")
@@ -471,13 +476,27 @@ class CriticalButton(discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
 
         data = await api_get(API_GET)
+
+        view = self.view
+        if view.server_filter:
+            data = [g for g in data if g.get("server") == view.server_filter]
+
         crit = [g for g in data if float(g["days"]) <= 1]
 
         if not crit:
             return await interaction.followup.send("✅ No critical generators", ephemeral=True)
 
-        msg = "\n".join([f"{g['name']} → {g['days']}d" for g in crit])
-        await interaction.followup.send(msg, ephemeral=True)
+        msg = "\n".join([
+            f"{g['name']} → {g['days']}d"
+            for g in crit
+        ])
+
+        
+        server_label = view.server_filter or "All Servers"
+        await interaction.followup.send(f"[{server_label}]\n{msg}", ephemeral=True)
+
+
+
 
 class ShowAllButton(discord.ui.Button):
     def __init__(self):
@@ -488,13 +507,25 @@ class ShowAllButton(discord.ui.Button):
 
         data = await api_get(API_GET)
 
+        view = self.view
+        if view.server_filter:
+            data = [g for g in data if g.get("server") == view.server_filter]
+
         if not data:
             return await interaction.followup.send("❌ No generators", ephemeral=True)
 
         data.sort(key=lambda g: float(g["days"]))
-        msg = "\n".join([f"{g['name']} → {g['days']}d" for g in data])
 
-        await interaction.followup.send(msg, ephemeral=True)
+        msg = "\n".join([
+            f"{g['name']} → {g['days']}d"
+            for g in data
+        ])
+
+        
+        server_label = view.server_filter or "All Servers"
+        await interaction.followup.send(f"[{server_label}]\n{msg}", ephemeral=True)
+
+
 
 # ========================
 # TOOLS (UNCHANGED)
@@ -637,10 +668,16 @@ class MainView(discord.ui.View):
 
 
 
+        
         elif tab == "search":
-            self.add_item(SearchSelect(data))
+            filtered = data
+            if self.server_filter:
+            filtered = [g for g in data if g.get("server") == self.server_filter]
+
+            self.add_item(SearchSelect(filtered))
             self.add_item(CriticalButton())
             self.add_item(ShowAllButton())
+
 
         elif tab == "tools":
             self.add_item(AddButton())
