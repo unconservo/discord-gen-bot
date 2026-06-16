@@ -203,22 +203,19 @@ class PrevButton(discord.ui.Button):
         )
 
 
-
 class NextButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="➡️")
 
-   (view.data) - 1) // PER_PAGE    async def callback(self, interaction):
+    async def callback(self, interaction):
+        view = self.view
+        max_page = (len(view.data) - 1) // PER_PAGE
         new_page = min(view.page + 1, max_page)
 
         await interaction.response.edit_message(
             embed=build_embed(view.data, new_page),
             view=MainView(view.data, new_page, view.tab)
         )
-        view = self.view
-
-
-
 
 
 
