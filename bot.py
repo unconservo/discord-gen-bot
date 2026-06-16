@@ -376,7 +376,7 @@ class SearchSelect(discord.ui.Select):
         if not result:
             return await interaction.response.send_message("❌ Not found", ephemeral=True)
 
-        msg = "\n".join([f"{g['name']} → {g['days']}d" for g in result])
+        msg = "\n".join([f"{g['name']} → {format_time(float(g['days']))}" for g in result])
 
         await log_action(interaction.user, "search", name)
         await interaction.response.send_message(msg, ephemeral=True)
