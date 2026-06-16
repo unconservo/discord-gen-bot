@@ -192,20 +192,27 @@ def build_embed(data, page=0):
     end = start + PER_PAGE
     slice_data = data[start:end]
 
-    for g in slice_data:
-        days = float(g["days"])
-        status = "✅"
+    
+for g in slice_data:
+    days = float(g["days"])
 
-        if days <= 1:
-            status = "🚨"
-        elif days <= 3:
-            status = "⚠️"
+    name_text = g["name"]
 
-        embed.add_field(
-            name=g["name"],
-            value=f"{format_time(days)} {status}",
-            inline=False
-        )
+    if days <= 1:
+        name_text = f"🚨 {g['name']} 🚨"
+        value = f"**{format_time(days)} CRITICAL 🚨**"
+    elif days <= 3:
+        name_text = f"⚠️ {g['name']}"
+        value = f"**{format_time(days)} LOW ⚠️**"
+    else:
+        value = f"{format_time(days)} ✅"
+
+    embed.add_field(
+        name=name_text,
+        value=value,
+        inline=False
+    )
+
 
     total_pages = max(1, (len(data) - 1) // PER_PAGE + 1)
     embed.set_footer(text=f"Page {page+1}/{total_pages}")
