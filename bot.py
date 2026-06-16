@@ -105,8 +105,8 @@ async def refresh_dashboard():
 # ========================
 # ALERT SYSTEM ✅ UPDATED
 # ========================
-
-ours = days * 24
+@tasks.loop(minutes=10)
+hours = days * 24
 prev = last_alerts.get(name)
 
 # 🚨 CRITICAL (<= 1 hour)
