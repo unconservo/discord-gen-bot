@@ -313,8 +313,8 @@ class ActionView(discord.ui.View):
 # SELECTS
 # ========================
 
-class GeneratorSelect(discord.ui.Select):
-    def __init__(self, data, page=0):
+
+class GeneratorSelect(discord.ui.Select):class GeneratorSelect(dis    def __init__(self, data, page=0):
         start = page * PER_PAGE
         end = start + PER_PAGE
         page_data = data[start:end]
@@ -325,6 +325,7 @@ class GeneratorSelect(discord.ui.Select):
             options = [discord.SelectOption(label="No generators")]
 
         super().__init__(placeholder="Select generator", options=options)
+
 
     async def callback(self, interaction):
         name = self.values[0]
