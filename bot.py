@@ -54,25 +54,29 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # ========================
 # SAFE API
 # ========================
-def api_get(url, params=None):
+
+async def api_get(url, params=None):
     params = params or {}
     params["key"] = API_KEY
 
     try:
-        r = requests.get(url, params=params)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params) as r:
+                text = await r.text()
 
-        if not r.text.strip():
-            return {}
+                if not text.strip():
+                    return {}
 
-        try:
-            return r.json()
-        except:
-            print("⚠️ Non-JSON:", r.text)
-            return {"raw": r.text}
+                try:
+                    return json.loads(text)
+                except:
+                    print("⚠️ Non-JSON:", text)
+                    return {"raw": text}
 
     except Exception as e:
         print("❌ API ERROR:", e)
         return {}
+
 
 # ========================
 # LOGGING
@@ -91,7 +95,7 @@ async def refresh_dashboard():
     if not dashboard_message:
         return
 
-    data = api_get(API_GET)
+    data = await api_get(API_GET)
 
     try:
         await dashboard_message.edit(
@@ -110,7 +114,7 @@ async def refresh_dashboard():
 # ========================
 @tasks.loop(minutes=10)
 async def check_alerts():
-    data = api_get(API_GET)
+    data = await api_get(API_GET)
     ch = bot.get_channel(ALERT_CHANNEL_ID)
 
     if not ch:
@@ -279,7 +283,7 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
 
         val = float(self.days.value)
 
-        api_get(API_ADD, {
+       await api_get(API_ADD, {
             "name": self.name.value,
             "days": val,
             "server": self.server.value
@@ -304,7 +308,7 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
         except:
             return await interaction.followup.send("❌ Invalid number", ephemeral=True)
 
-        api_get(API_UPDATE, {"name": self.name, "days": val})
+        await api_get(API_UPDATE, {"name": self.name, "days": val})
 
         # ✅ STORE USER FOR ALERT SYSTEM
         last_refuel_user[self.name] = interaction.user.name
@@ -332,7 +336,7 @@ class ConfirmDelete(discord.ui.View):
 
         await interaction.response.defer(ephemeral=True)
 
-        api_get(API_DELETE, {"name": self.name})
+        await api_get(API_DELETE, {"name": self.name})
         last_deleted = self.name
 
         await log_action(interaction.user, "delete", self.name)
@@ -447,7 +451,7 @@ class CriticalButton(discord.ui.Button):
     async def callback(self, interaction):
         await interaction.response.defer(ephemeral=True)
 
-        data = api_get(API_GET)
+        data = await api_get(API_GET)
         crit = [g for g in data if float(g["days"]) <= 1]
 
         if not crit:
@@ -463,7 +467,7 @@ class ShowAllButton(discord.ui.Button):
     async def callback(self, interaction):
         await interaction.response.defer(ephemeral=True)
 
-        data = api_get(API_GET)
+        data = await api_get(API_GET)
 
         if not data:
             return await interaction.followup.send("❌ No generators", ephemeral=True)
@@ -495,7 +499,7 @@ class UndoButton(discord.ui.Button):
         if not last_deleted:
             return await interaction.followup.send("Nothing to undo", ephemeral=True)
 
-        api_get(API_RESTORE, {"name": last_deleted})
+        await api_get(API_RESTORE, {"name": last_deleted})
 
         await log_action(interaction.user, "undo", last_deleted)
         await interaction.followup.send("✅ Restored", ephemeral=True)
@@ -509,7 +513,7 @@ class BackupButton(discord.ui.Button):
     async def callback(self, interaction):
         await interaction.response.defer(ephemeral=True)
 
-        data = api_get(API_GET)
+        data = await api_get(API_GET)
 
         with open("backup.json", "w") as f:
             json.dump(data, f)
@@ -524,7 +528,7 @@ class CSVButton(discord.ui.Button):
     async def callback(self, interaction):
         await interaction.response.defer(ephemeral=True)
 
-        data = api_get(API_GET)
+        data = await api_get(API_GET)
 
         with open("gens.csv", "w", newline="") as f:
             writer = csv.writer(f)
@@ -575,7 +579,7 @@ class TabButton(discord.ui.Button):
     async def callback(self, interaction):
         await interaction.response.defer()
 
-        data = api_get(API_GET)
+        data = await api_get(API_GET)
 
         await interaction.message.edit(
             embed=build_embed(data, 0, None),
@@ -635,7 +639,7 @@ class MainView(discord.ui.View):
 async def gen_dashboard(interaction):
     global dashboard_message
 
-    data = api_get(API_GET)
+    data = await api_get(API_GET)
     ch = bot.get_channel(GEN_CHANNEL_ID)
 
     dashboard_message = await ch.send(
