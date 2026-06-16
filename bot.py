@@ -23,7 +23,6 @@ API_DELETE = "https://www.t-doc.co.za/discord/delete.php"
 API_RESTORE = "https://www.t-doc.co.za/discord/restore.php"
 API_TRASH = "https://www.t-doc.co.za/discord/trash.php"
 API_CLEAR_ALL = "https://www.t-doc.co.za/discord/clear_all.php"
-DAILY_API = "https://www.t-doc.co.za/discord/decrease.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
