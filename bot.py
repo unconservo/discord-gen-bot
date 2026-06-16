@@ -244,29 +244,36 @@ class PrevButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="⬅️")
 
+       
     async def callback(self, interaction):
+        await interaction.response.defer()
+
         view = self.view
         new_page = max(view.page - 1, 0)
 
-        await interaction.response.edit_message(
+        await interaction.message.edit(
             embed=build_embed(view.data, new_page, view.server_filter),
             view=MainView(view.data, new_page, view.tab, view.server_filter)
         )
+
 
 
 class NextButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="➡️")
 
+    
     async def callback(self, interaction):
-        view = self.view
-        max_page = (len(view.data) - 1) // PER_PAGE
-        new_page = min(view.page + 1, max_page)
+        await interaction.response.defer()
 
-        await interaction.response.edit_message(
+        view = self.view
+        new_page = max(view.page - 1, 0)
+
+        await interaction.message.edit(
             embed=build_embed(view.data, new_page, view.server_filter),
             view=MainView(view.data, new_page, view.tab, view.server_filter)
         )
+
 
 
 
