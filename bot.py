@@ -398,17 +398,27 @@ class ServerSelect(discord.ui.Select):
 
         super().__init__(placeholder="Filter by server...", options=options)
 
-    async def callback(self, interaction):
-        view = self.view
-        selected = self.values[0]
+    
+async def callback(self, interaction):
+    await interaction.response.defer()
 
-        view.server_filter = selected if selected != "ALL" else None
+    view = self.view
+    selected = self.values[0]
 
-        
-        await interaction.response.edit_message(
-            embed=build_embed(view.data, view.page, view.server_filter),
-            view=MainView(view.data, view.page, view.tab, view.server_filter)
-        )
+    view.server_filter = selected if selected != "ALL" else None
+
+    # ✅ update the dashboard message
+    await interaction.message.edit(
+        embed=build_embed(view.data, view.page, view.server_filter),
+        view=MainView(view.data, view.page, view.tab, view.server_filter)
+    )
+
+    # ✅ OPTIONAL: confirm action so "thinking" stops cleanly
+    await interaction.followup.send(
+        f"✅ Filter set to: {view.server_filter or 'All Servers'}",
+        ephemeral=True
+    )
+
 
 
 
@@ -426,18 +436,21 @@ class GeneratorSelect(discord.ui.Select):
         super().__init__(placeholder="Select generator", options=options)
 
     
-    async def callback(self, interaction):
-        await interaction.response.defer()  # ✅ ADD THIS LINE
+    
+sync def callback(self, interaction):
+    await interaction.response.defer()  # ✅ acknowledge immediately
 
-        name = self.values[0]
+    name = self.values[0]
 
-        await log_action(interaction.user, "select", name)
+    await log_action(interaction.user, "select", name)
 
-        await interaction.followup.send(
-            f"⚡ {name}",
-            view=ActionView(name),
-            ephemeral=True
-        )
+    # ✅ THIS is the response Discord is waiting for
+    await interaction.followup.send(
+        f"⚡ {name}",
+        view=ActionView(name),
+        ephemeral=True
+    )
+
 
 
 
