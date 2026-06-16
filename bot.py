@@ -105,48 +105,44 @@ async def refresh_dashboard():
 # ========================
 # ALERT SYSTEM ✅ UPDATED
 # ========================
-@tasks.loop(minutes=10)
-async def check_alerts():
-    data = api_get(API_GET)
-    ch = bot.get_channel(ALERT_CHANNEL_ID)
 
-    if not ch:
-        return
+ours = days * 24
+prev = last_alerts.get(name)
 
-    for g in data:
-        name = g["name"]
-        days = float(g["days"])
+# 🚨 CRITICAL (<= 1 hour)
+if hours <= 1:
+    if not prev or prev["state"] != "critical":
+        msg = await ch.send(f"🚨 <@&{ROLE_ID}> {name} CRITICAL ({format_time(days)})")
+        last_alerts[name] = {"state": "critical", "message": msg}
 
-        prev = last_alerts.get(name)
+# ⚠️ VERY LOW (<= 3 hours)
+elif hours <= 3:
+    if not prev or prev["state"] != "very_low":
+        msg = await ch.send(f"⚠️ {name} VERY LOW ({format_time(days)})")
+        last_alerts[name] = {"state": "very_low", "message": msg}
 
-        # 🚨 CRITICAL
-        if days <= 1:
-            if not prev or prev["state"] != "critical":
-                msg = await ch.send(f"🚨 <@&{ROLE_ID}> {name} CRITICAL ({days:.1f}d)")
-                last_alerts[name] = {"state": "critical", "message": msg}
+# ⚠️ LOW (<= 6 hours)
+elif hours <= 6:
+    if not prev or prev["state"] != "low":
+        msg = await ch.send(f"⚠️ {name} LOW ({format_time(days)})")
+        last_alerts[name] = {"state": "low", "message": msg}
 
-        # ⚠️ LOW
-        elif days <= 3:
-            if not prev or prev["state"] != "low":
-                msg = await ch.send(f"⚠️ {name} LOW ({days:.1f}d)")
-                last_alerts[name] = {"state": "low", "message": msg}
+# ✅ RESOLVED
+else:
+    if prev:
+        user = last_refuel_user.get(name, "Unknown")
 
-        # ✅ RESOLVED
-        else:
-            if prev:
-                user = last_refuel_user.get(name, "Unknown")
+        try:
+            await prev["message"].edit(
+                content=f"✅ {name} resolved by **{user}** ({format_time(days)})"
+            )
+        except:
+            pass
 
-                try:
-                    await prev["message"].edit(
-                        content=f"✅ {name} resolved by **{user}** ({days:.1f}d)"
-                    )
-                except:
-                    pass
+        del last_alerts[name]
 
-                del last_alerts[name]
-
-                if name in last_refuel_user:
-                    del last_refuel_user[name]
+        if name in last_refuel_user:
+            del last_refuel_user[name]
 
 # ========================
 # EMBED
