@@ -153,6 +153,20 @@ async def check_alerts():
 # EMBED
 # ========================
 
+def format_time(days):
+    total_minutes = int(days * 24 * 60)
+
+    d = total_minutes // (24 * 60)
+    h = (total_minutes % (24 * 60)) // 60
+    m = total_minutes % 60
+
+    if d > 0:
+        return f"{d}d {h}h"
+    elif h > 0:
+        return f"{h}h {m}m"
+    else:
+        return f"{m}m"
+
 def build_embed(data, page=0):
     embed = discord.Embed(title="⚡ Generator Dashboard", color=0x00ff99)
 
@@ -175,7 +189,7 @@ def build_embed(data, page=0):
 
         embed.add_field(
             name=g["name"],
-            value=f"{days:.1f} days {status}",
+            value=f"{format_time(days)} {status}",
             inline=False
         )
 
