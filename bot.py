@@ -103,6 +103,7 @@ async def refresh_dashboard():
         print("Dashboard update failed:", e)
 
 
+
 # ========================
 # ALERT SYSTEM ✅ UPDATED
 # ========================
@@ -114,60 +115,52 @@ async def check_alerts():
     if not ch:
         return
 
-    
-for g in data:
-    name = g["name"]
-    days = float(g["days"])
-    hours = days * 24
+    for g in data:
+        name = g["name"]
+        days = float(g["days"])
+        hours = days * 24
 
-    prev = last_alerts.get(name)
+        prev = last_alerts.get(name)
 
-    # ✅ determine current state
-    state = None
-    if hours <= 1:
-        state = "critical"
-    elif hours <= 3:
-        state = "very_low"
-    elif hours <= 6:
-        state = "low"
+        state = None
+        if hours <= 1:
+            state = "critical"
+        elif hours <= 3:
+            state = "very_low"
+        elif hours <= 6:
+            state = "low"
 
-    prev_state = prev["state"] if prev else None
+        prev_state = prev["state"] if prev else None
 
-    # ✅ ONLY TRIGGER IF STATE CHANGED
-    if state != prev_state:
+        if state != prev_state:
 
-        # 🚨 CRITICAL
-        if state == "critical":
-            msg = await ch.send(f"🚨 <@&{ROLE_ID}> {name} CRITICAL ({format_time(days)})")
-            last_alerts[name] = {"state": state, "message": msg}
+            if state == "critical":
+                msg = await ch.send(f"🚨 <@&{ROLE_ID}> {name} CRITICAL ({format_time(days)})")
+                last_alerts[name] = {"state": state, "message": msg}
 
-        # ⚠️ VERY LOW
-        elif state == "very_low":
-            msg = await ch.send(f"⚠️ {name} VERY LOW ({format_time(days)})")
-            last_alerts[name] = {"state": state, "message": msg}
+            elif state == "very_low":
+                msg = await ch.send(f"⚠️ {name} VERY LOW ({format_time(days)})")
+                last_alerts[name] = {"state": state, "message": msg}
 
-        # ⚠️ LOW
-        elif state == "low":
-            msg = await ch.send(f"⚠️ {name} LOW ({format_time(days)})")
-            last_alerts[name] = {"state": state, "message": msg}
+            elif state == "low":
+                msg = await ch.send(f"⚠️ {name} LOW ({format_time(days)})")
+                last_alerts[name] = {"state": state, "message": msg}
 
-        # ✅ RESOLVED (LEFT ALERT ZONES)
-        else:
-            if prev:
-                user = last_refuel_user.get(name, "Unknown")
+            else:
+                if prev:
+                    user = last_refuel_user.get(name, "Unknown")
 
-                try:
-                    await prev["message"].edit(
-                        content=f"✅ {name} resolved by **{user}** ({format_time(days)})"
-                    )
-                except:
-                    pass
+                    try:
+                        await prev["message"].edit(
+                            content=f"✅ {name} resolved by **{user}** ({format_time(days)})"
+                        )
+                    except:
+                        pass
 
-                del last_alerts[name]
+                    del last_alerts[name]
 
-                if name in last_refuel_user:
-                    del last_refuel_user[name]
-
+                    if name in last_refuel_user:
+                        del last_refuel_user[name]
 
 @tasks.loop(minutes=5)
 async def auto_refresh():
