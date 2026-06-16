@@ -273,6 +273,7 @@ class NextButton(discord.ui.Button):
 # ========================
 # MODALS
 # ========================
+
 class AddModal(discord.ui.Modal, title="Add Generator"):
     name = discord.ui.TextInput(label="Name")
     days = discord.ui.TextInput(label="Days")
@@ -281,9 +282,13 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
     async def on_submit(self, interaction):
         await interaction.response.defer(ephemeral=True)
 
-        val = float(self.days.value)
+        try:
+            val = float(self.days.value)
+        except:
+            return await interaction.followup.send("❌ Invalid number", ephemeral=True)
 
-       await api_get(API_ADD, {
+        # ✅ FIXED INDENTATION
+        await api_get(API_ADD, {
             "name": self.name.value,
             "days": val,
             "server": self.server.value
@@ -291,9 +296,12 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
 
         await log_action(interaction.user, "add", f"{self.name.value} → {val}d")
         await interaction.followup.send("✅ Generator added", ephemeral=True)
+
         await refresh_dashboard()
 
-class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
+
+
+lass RefuelModal(discord.ui.Modal, title="Refuel Generator"):
     days = discord.ui.TextInput(label="Set Days")
 
     def __init__(self, name):
@@ -308,9 +316,12 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
         except:
             return await interaction.followup.send("❌ Invalid number", ephemeral=True)
 
-        await api_get(API_UPDATE, {"name": self.name, "days": val})
+        # ✅ FIXED INDENT
+        await api_get(API_UPDATE, {
+            "name": self.name,
+            "days": val
+        })
 
-        # ✅ STORE USER FOR ALERT SYSTEM
         last_refuel_user[self.name] = interaction.user.name
 
         await log_action(interaction.user, "refuel", f"{self.name} → {val}d")
@@ -321,6 +332,7 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
         )
 
         await refresh_dashboard()
+
 
 # ========================
 # DELETE
