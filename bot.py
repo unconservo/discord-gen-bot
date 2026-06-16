@@ -41,6 +41,11 @@ API_KEY = "SUPER_SECRET_KEY"  # ✅ MUST MATCH PHP
 
 PER_PAGE = 25
 
+SERVER_ROLES = {
+    "2491": 1133565753409425408, # TastierGem
+    "2491": 506506603068129300, # Hutter
+}
+
 
 
 
@@ -113,6 +118,7 @@ async def refresh_dashboard():
 # ========================
 # ALERT SYSTEM ✅ UPDATED
 # ========================
+
 @tasks.loop(minutes=10)
 async def check_alerts():
     data = await api_get(API_GET)
@@ -123,6 +129,8 @@ async def check_alerts():
 
     for g in data:
         name = g["name"]
+        server = g.get("server", "Unknown")
+
         days = float(g["days"])
         hours = days * 24
 
@@ -140,25 +148,58 @@ async def check_alerts():
 
         if state != prev_state:
 
+            # ========================
+            # CRITICAL ALERT ✅
+            # ========================
             if state == "critical":
-                msg = await ch.send(f"🚨 <@&{ROLE_ID}> {name} CRITICAL ({format_time(days)})")
-                last_alerts[name] = {"state": state, "message": msg}
+                role_id = SERVER_ROLES.get(server, DEFAULT_ROLE)
+                mention = f"<@&{role_id}>" if role_id else ""
 
+                msg = await ch.send(
+                    f"🚨 {mention} [{server}] {name} CRITICAL ({format_time(days)})"
+                )
+
+                last_alerts[name] = {
+                    "state": state,
+                    "message": msg
+                }
+
+            # ========================
+            # VERY LOW
+            # ========================
             elif state == "very_low":
-                msg = await ch.send(f"⚠️ {name} VERY LOW ({format_time(days)})")
-                last_alerts[name] = {"state": state, "message": msg}
+                msg = await ch.send(
+                    f"⚠️ [{server}] {name} VERY LOW ({format_time(days)})"
+                )
 
+                last_alerts[name] = {
+                    "state": state,
+                    "message": msg
+                }
+
+            # ========================
+            # LOW
+            # ========================
             elif state == "low":
-                msg = await ch.send(f"⚠️ {name} LOW ({format_time(days)})")
-                last_alerts[name] = {"state": state, "message": msg}
+                msg = await ch.send(
+                    f"⚠️ [{server}] {name} LOW ({format_time(days)})"
+                )
 
+                last_alerts[name] = {
+                    "state": state,
+                    "message": msg
+                }
+
+            # ========================
+            # RESOLVED
+            # ========================
             else:
                 if prev:
                     user = last_refuel_user.get(name, "Unknown")
 
                     try:
                         await prev["message"].edit(
-                            content=f"✅ {name} resolved by **{user}** ({format_time(days)})"
+                            content=f"✅ [{server}] {name} resolved by **{user}** ({format_time(days)})"
                         )
                     except:
                         pass
@@ -167,6 +208,7 @@ async def check_alerts():
 
                     if name in last_refuel_user:
                         del last_refuel_user[name]
+
 
 @tasks.loop(minutes=5)
 async def auto_refresh():
