@@ -301,7 +301,7 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
 
 
 
-lass RefuelModal(discord.ui.Modal, title="Refuel Generator"):
+Class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
     days = discord.ui.TextInput(label="Set Days")
 
     def __init__(self, name):
