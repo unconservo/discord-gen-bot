@@ -39,7 +39,7 @@ last_refuel_user = {}     # ✅ NEW: tracks who refueled
 
 API_KEY = "SUPER_SECRET_KEY"  # ✅ MUST MATCH PHP
 
-PER_PAGE = 20
+PER_PAGE = 25
 
 
 
