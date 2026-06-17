@@ -141,7 +141,7 @@ class JumpView(discord.ui.View):
 
 
 
-lass JumpButton(discord.ui.Button):
+class JumpButton(discord.ui.Button):
     def __init__(self, name):
         super().__init__(label=name[:80])
         self.gen_name = name
