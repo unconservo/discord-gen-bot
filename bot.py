@@ -336,7 +336,7 @@ class NextButton(discord.ui.Button):
 # ========================
 
 
-lass SearchModal(discord.ui.Modal, title="Search Generator"):
+class SearchModal(discord.ui.Modal, title="Search Generator"):
     query = discord.ui.TextInput(
         label="Enter generator name",
         placeholder="Type part of the name (e.g. gen, 19, base)",
