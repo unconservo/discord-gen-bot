@@ -578,7 +578,7 @@ class ActionView(discord.ui.View):
 # ========================
 
 
-lass SearchInputButton(discord.ui.Button):
+class SearchInputButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="🔎 Search by Name", style=discord.ButtonStyle.primary)
 
