@@ -336,6 +336,79 @@ class NextButton(discord.ui.Button):
 # ========================
 
 
+lass SearchModal(discord.ui.Modal, title="Search Generator"):
+    query = discord.ui.TextInput(
+        label="Enter generator name",
+        placeholder="Type part of the name (e.g. gen, 19, base)",
+        required=True
+    )
+
+    def __init__(self, view):
+        super().__init__()
+        self.view_ref = view
+
+    async def on_submit(self, interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        data = await api_get(API_GET)
+
+        # ✅ Apply server filter
+        if self.view_ref.server_filter:
+            data = [
+                g for g in data
+                if str(g.get("server")).strip() == str(self.view_ref.server_filter).strip()
+            ]
+
+        # ✅ Partial match (case-insensitive)
+        query = self.query.value.lower().strip()
+
+        results = [
+            g for g in data
+            if query in g["name"].lower()
+        ]
+
+        if not results:
+            return await interaction.followup.send(
+                "❌ No matching generators",
+                ephemeral=True
+            )
+
+        # ✅ Sort results
+        results.sort(key=lambda g: float(g["days"]))
+
+        # ✅ Format lines
+        lines = [
+            f"{g['name']} → {g['days']}d"
+            for g in results
+        ]
+
+        # ✅ Split into chunks (avoid 2000 char limit)
+        chunks = []
+        current = ""
+
+        for line in lines:
+            if len(current) + len(line) + 1 > 1900:
+                chunks.append(current)
+                current = line
+            else:
+                current += ("\n" if current else "") + line
+
+        if current:
+            chunks.append(current)
+
+        # ✅ Add server label
+        server_label = self.view_ref.server_filter or "All Servers"
+
+        # ✅ Send results
+        await interaction.followup.send(
+            f"🔎 Results for: `{query}`\n[{server_label}]\n\n{chunks[0]}",
+            ephemeral=True
+        )
+
+        # ✅ Send additional chunks if needed
+        for chunk in chunks[1:]:
+            await interaction.followup.send(chunk, ephemeral=True)
+
 
 class AddModal(discord.ui.Modal, title="Add Generator"):
     name = discord.ui.TextInput(label="Name")
@@ -504,6 +577,13 @@ class ActionView(discord.ui.View):
 # SELECTS
 # ========================
 
+
+lass SearchInputButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="🔎 Search by Name", style=discord.ButtonStyle.primary)
+
+    async def callback(self, interaction):
+        await interaction.response.send_modal(SearchModal(self.view))
 
 
 
@@ -804,6 +884,7 @@ class TabButton(discord.ui.Button):
 
 
 
+
 class MainView(discord.ui.View):
     def __init__(self, data, page=0, tab="dashboard", server_filter=None):
         super().__init__(timeout=None)
@@ -813,7 +894,9 @@ class MainView(discord.ui.View):
         self.tab = tab
         self.server_filter = server_filter
 
-        # Tabs
+        # =========================
+        # TABS
+        # =========================
         self.add_item(TabButton("⚡ Dashboard", "dashboard"))
         self.add_item(TabButton("🔍 Search", "search"))
         self.add_item(TabButton("📊 Tools", "tools"))
@@ -828,27 +911,44 @@ class MainView(discord.ui.View):
 
             filtered = data
             if self.server_filter:
-                filtered = [g for g in data if g.get("server") == self.server_filter]
+                filtered = [
+                    g for g in data
+                    if g.get("server") == self.server_filter
+                ]
 
             self.add_item(GeneratorSelect(filtered, self.page))
 
         # =========================
-        # SEARCH TAB ✅ FULL FIX
+        # SEARCH TAB ✅ FULL VERSION
         # =========================
         elif tab == "search":
+            # ✅ Server dropdown
             self.add_item(ServerSelect(data))
 
+            # ✅ Apply server filter
             filtered = data
             if self.server_filter:
-                filtered = [g for g in data if g.get("server") == self.server_filter]
+                filtered = [
+                    g for g in data
+                    if g.get("server") == self.server_filter
+                ]
 
+            # ✅ Pagination
             start = self.page * PER_PAGE
             end = start + PER_PAGE
             page_data = filtered[start:end]
 
+            # ✅ Navigation
             self.add_item(PrevButton())
             self.add_item(NextButton())
+
+            # ✅ Dropdown (page results)
             self.add_item(SearchSelect(page_data))
+
+            # ✅ NEW: Partial search modal
+            self.add_item(SearchInputButton())
+
+            # ✅ Quick actions
             self.add_item(CriticalButton())
             self.add_item(ShowAllButton())
 
@@ -862,6 +962,7 @@ class MainView(discord.ui.View):
             self.add_item(CSVButton())
             self.add_item(ResetAlertsButton())
             self.add_item(HelpButton())
+
 
 
         # =========================
