@@ -129,7 +129,7 @@ async def refresh_dashboard():
 # ========================
 
 
-lass JumpView(discord.ui.View):
+class JumpView(discord.ui.View):
     def __init__(self, results, full_data, server_filter):
         super().__init__(timeout=60)
 
