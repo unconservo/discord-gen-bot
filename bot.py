@@ -124,6 +124,57 @@ async def refresh_dashboard():
     except Exception as e:
         print("Dashboard update failed:", e)
 
+# ========================
+# Jump SYSTEM ✅ UPDATED
+# ========================
+
+
+lass JumpView(discord.ui.View):
+    def __init__(self, results, full_data, server_filter):
+        super().__init__(timeout=60)
+
+        self.full_data = full_data
+        self.server_filter = server_filter
+
+        for g in results[:10]:  # limit to 10 buttons
+            self.add_item(JumpButton(g["name"]))
+
+class JumpButton(discord.ui.Button):
+    def __init__(self, name):
+        super().__init__(label=name[:80])
+        self.gen_name = name
+
+    async def callback(self, interaction):
+        data = await api_get(API_GET)
+
+        view = self.view
+
+        # ✅ Apply server filter
+        if view.server_filter:
+            data = [
+                g for g in data
+                if g.get("server") == view.server_filter
+            ]
+
+        # ✅ Sort same as dashboard
+        data.sort(key=lambda g: float(g["days"]))
+
+        # ✅ Find index of generator
+        index = next(
+            (i for i, g in enumerate(data) if g["name"] == self.gen_name),
+            0
+        )
+
+        # ✅ Calculate page
+        page = index // PER_PAGE
+
+        # ✅ Jump to dashboard + highlight
+        await interaction.response.edit_message(
+            content=f"📍 Jumped to: {self.gen_name}",
+            embed=build_embed(data, page, view.server_filter, highlight=self.gen_name),
+            view=MainView(data, page, "dashboard", view.server_filter)
+        )
+
 
 
 # ========================
@@ -246,7 +297,8 @@ def format_time(days):
 
 
 
-def build_embed(data, page=0, server_filter=None):
+
+def build_embed(data, page=0, server_filter=None, highlight=None):
 
     if server_filter:
         data = [g for g in data if g.get("server") == server_filter]
@@ -272,11 +324,13 @@ def build_embed(data, page=0, server_filter=None):
 
         name_text = g["name"]
 
+        # ✅ Highlight selected generator
+        if highlight and g["name"] == highlight:
+            name_text = f"👉 {g['name']}"
+
         if days <= 1:
-            name_text = f"🚨 {g['name']} 🚨"
             value = f"**{format_time(days)} CRITICAL 🚨**"
         elif days <= 3:
-            name_text = f"⚠️ {g['name']}"
             value = f"**{format_time(days)} LOW ⚠️**"
         else:
             value = f"{format_time(days)} ✅"
@@ -338,6 +392,7 @@ class NextButton(discord.ui.Button):
 # ========================
 
 
+
 class SearchModal(discord.ui.Modal, title="Search Generator"):
     query = discord.ui.TextInput(
         label="Enter generator name",
@@ -361,7 +416,7 @@ class SearchModal(discord.ui.Modal, title="Search Generator"):
                 if str(g.get("server")).strip() == str(self.view_ref.server_filter).strip()
             ]
 
-        # ✅ Partial match (case-insensitive)
+        # ✅ Partial match
         query = self.query.value.lower().strip()
 
         results = [
@@ -375,41 +430,16 @@ class SearchModal(discord.ui.Modal, title="Search Generator"):
                 ephemeral=True
             )
 
-        # ✅ Sort results
         results.sort(key=lambda g: float(g["days"]))
 
-        # ✅ Format lines
-        lines = [
-            f"{g['name']} → {g['days']}d"
-            for g in results
-        ]
-
-        # ✅ Split into chunks (avoid 2000 char limit)
-        chunks = []
-        current = ""
-
-        for line in lines:
-            if len(current) + len(line) + 1 > 1900:
-                chunks.append(current)
-                current = line
-            else:
-                current += ("\n" if current else "") + line
-
-        if current:
-            chunks.append(current)
-
-        # ✅ Add server label
         server_label = self.view_ref.server_filter or "All Servers"
 
-        # ✅ Send results
+        # ✅ Send buttons instead of text
         await interaction.followup.send(
-            f"🔎 Results for: `{query}`\n[{server_label}]\n\n{chunks[0]}",
+            f"🔎 Results for: `{query}`\n[{server_label}]",
+            view=JumpView(results, data, self.view_ref.server_filter),
             ephemeral=True
         )
-
-        # ✅ Send additional chunks if needed
-        for chunk in chunks[1:]:
-            await interaction.followup.send(chunk, ephemeral=True)
 
 
 class AddModal(discord.ui.Modal, title="Add Generator"):
