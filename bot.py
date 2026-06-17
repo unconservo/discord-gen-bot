@@ -8,6 +8,20 @@ import csv
 import datetime
 import aiohttp
 
+import time
+
+restart_count = 0
+
+while restart_count < 5:
+    try:
+        bot.run(TOKEN)
+    except Exception as e:
+        print(f"Crash: {e}")
+        restart_count += 1
+        time.sleep(10)
+
+print("❌ Too many crashes — stopping bot")
+
 # =========================
 # CONFIG (CHANGE THESE)
 # =========================
