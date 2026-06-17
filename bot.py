@@ -140,7 +140,8 @@ class JumpView(discord.ui.View):
             self.add_item(JumpButton(g["name"]))
 
 
-class JumpButton(discord.ui.Button):
+
+lass JumpButton(discord.ui.Button):
     def __init__(self, name):
         super().__init__(label=name[:80])
         self.gen_name = name
@@ -169,7 +170,7 @@ class JumpButton(discord.ui.Button):
         # ✅ Calculate page
         page = index // PER_PAGE
 
-        # ✅ Update main dashboard
+        # ✅ Update dashboard (THIS BLOCK MUST CLOSE PROPERLY ✅)
         await interaction.response.edit_message(
             content=f"📍 Jumped to: {self.gen_name}",
             embed=build_embed(
@@ -178,7 +179,21 @@ class JumpButton(discord.ui.Button):
                 view.server_filter,
                 highlight=self.gen_name
             ),
-            view=MainView(data, page, "dashboard", view.server_filter)
+            view=MainView(
+                data,
+                page,
+                "dashboard",
+                view.server_filter
+            )
+        )
+
+        # ✅ Auto open action menu
+        await interaction.followup.send(
+            f"⚡ {self.gen_name}",
+            view=ActionView(self.gen_name),
+            ephemeral=True
+        )
+
 
 
 # ========================
