@@ -139,6 +139,7 @@ class JumpView(discord.ui.View):
         for g in results[:10]:  # limit to 10 buttons
             self.add_item(JumpButton(g["name"]))
 
+
 class JumpButton(discord.ui.Button):
     def __init__(self, name):
         super().__init__(label=name[:80])
@@ -159,7 +160,7 @@ class JumpButton(discord.ui.Button):
         # ✅ Sort same as dashboard
         data.sort(key=lambda g: float(g["days"]))
 
-        # ✅ Find index of generator
+        # ✅ Find index
         index = next(
             (i for i, g in enumerate(data) if g["name"] == self.gen_name),
             0
@@ -168,13 +169,16 @@ class JumpButton(discord.ui.Button):
         # ✅ Calculate page
         page = index // PER_PAGE
 
-        # ✅ Jump to dashboard + highlight
+        # ✅ Update main dashboard
         await interaction.response.edit_message(
             content=f"📍 Jumped to: {self.gen_name}",
-            embed=build_embed(data, page, view.server_filter, highlight=self.gen_name),
+            embed=build_embed(
+                data,
+                page,
+                view.server_filter,
+                highlight=self.gen_name
+            ),
             view=MainView(data, page, "dashboard", view.server_filter)
-        )
-
 
 
 # ========================
