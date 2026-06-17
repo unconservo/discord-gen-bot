@@ -8,19 +8,7 @@ import csv
 import datetime
 import aiohttp
 
-import time
 
-restart_count = 0
-
-while restart_count < 5:
-    try:
-        bot.run(TOKEN)
-    except Exception as e:
-        print(f"Crash: {e}")
-        restart_count += 1
-        time.sleep(10)
-
-print("❌ Too many crashes — stopping bot")
 
 # =========================
 # CONFIG (CHANGE THESE)
@@ -1022,6 +1010,17 @@ async def on_ready():
     check_alerts.start()
     auto_refresh.start()
     print(f"✅ Logged in as {bot.user}")
+
+import time
+
+if __name__ == "__main__":
+    while True:
+        try:
+            bot.run(TOKEN)
+        except Exception as e:
+            print(f"⚠️ Bot crashed: {e}")
+            print("🔁 Restarting in 10 seconds...")
+            time.sleep(10)
 
 
 bot.run(TOKEN)
