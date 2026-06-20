@@ -62,27 +62,34 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # SAFE API
 # ========================
 
+
+import aiohttp
+import asyncio
+
 async def api_get(url, params=None):
     params = params or {}
     params["key"] = API_KEY
 
+    timeout = aiohttp.ClientTimeout(total=5)  # ✅ 5 second max
+
     try:
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(url, params=params) as r:
                 text = await r.text()
 
                 if not text.strip():
-                    return {}
+                    return []
 
-                try:
-                    return json.loads(text)
-                except:
-                    print("⚠️ Non-JSON:", text)
-                    return {"raw": text}
+                return json.loads(text)
+
+    except asyncio.TimeoutError:
+        print("⚠️ API TIMEOUT")
+        return []
 
     except Exception as e:
         print("❌ API ERROR:", e)
-        return {}
+        return []
+
 
 
 
