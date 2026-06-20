@@ -317,6 +317,10 @@ def format_time(days):
 
 
 
+
+
+rom datetime import datetime
+
 def build_embed(data, page=0, server_filter=None, highlight=None):
 
     if server_filter:
@@ -341,9 +345,28 @@ def build_embed(data, page=0, server_filter=None, highlight=None):
     for g in slice_data:
         days = float(g["days"])
 
+        # ✅ NEW: Handle timestamp countdown OR fallback
+        if "updated_at" in g and g["updated_at"]:
+            try:
+                last_update = datetime.fromisoformat(g["updated_at"])
+                now = datetime.utcnow()
+
+                elapsed_days = (now - last_update).total_seconds() / 86400
+                days -= elapsed_days
+            except:
+                # ✅ fallback if parsing fails
+                days = float(g["days"])
+        else:
+            # ✅ fallback if no timestamp (old records)
+            days = float(g["days"])
+
+        # ✅ Clamp value
+        if days < 0:
+            days = 0
+
         name_text = g["name"]
 
-        # ✅ Highlight selected generator
+        # ✅ Highlight (if jumping from search)
         if highlight and g["name"] == highlight:
             name_text = f"👉 {g['name']}"
 
@@ -364,6 +387,7 @@ def build_embed(data, page=0, server_filter=None, highlight=None):
     embed.set_footer(text=f"Page {page+1}/{total_pages}")
 
     return embed
+
 
 
 
@@ -461,6 +485,9 @@ class SearchModal(discord.ui.Modal, title="Search Generator"):
         )
 
 
+
+from datetime import datetime
+
 class AddModal(discord.ui.Modal, title="Add Generator"):
     name = discord.ui.TextInput(label="Name")
     days = discord.ui.TextInput(label="Days")
@@ -472,19 +499,15 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
         try:
             val = float(self.days.value)
         except:
-            return await interaction.followup.send(
-                "❌ Invalid number",
-                ephemeral=True
-            )
+            return await interaction.followup.send("❌ Invalid number", ephemeral=True)
 
-        # ✅ Add generator
         await api_get(API_ADD, {
             "name": self.name.value,
             "days": val,
-            "server": self.server.value
+            "server": self.server.value,
+            "updated_at": datetime.utcnow().isoformat()  # ✅ NEW
         })
 
-        # ✅ Log ADD with value
         await log_action(
             interaction.user,
             "ADD",
@@ -493,10 +516,7 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
             f"{val:.1f}d"
         )
 
-        await interaction.followup.send(
-            "✅ Generator added",
-            ephemeral=True
-        )
+        await interaction.followup.send("✅ Generator added", ephemeral=True)
 
         await refresh_dashboard()
 
@@ -504,6 +524,10 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
 
 
 
+
+
+
+from datetime import datetime
 
 class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
     days = discord.ui.TextInput(label="Set Days")
@@ -518,28 +542,22 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
         try:
             val = float(self.days.value)
         except:
-            return await interaction.followup.send(
-                "❌ Invalid number",
-                ephemeral=True
-            )
+            return await interaction.followup.send("❌ Invalid number", ephemeral=True)
 
-        # ✅ Update generator
         await api_get(API_UPDATE, {
             "name": self.name,
-            "days": val
+            "days": val,
+            "updated_at": datetime.utcnow().isoformat()  # ✅ NEW
         })
 
-        # ✅ Track who refueled (for alerts)
         last_refuel_user[self.name] = interaction.user.name
 
-        # ✅ Get server
         data = await api_get(API_GET)
         server = next(
             (g.get("server") for g in data if g["name"] == self.name),
             "Unknown"
         )
 
-        # ✅ Log UPDATE with value
         await log_action(
             interaction.user,
             "UPDATE",
