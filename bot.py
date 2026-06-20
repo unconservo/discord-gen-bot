@@ -149,13 +149,13 @@ class JumpView(discord.ui.View):
 
 
 
+
 class JumpButton(discord.ui.Button):
     def __init__(self, name):
         super().__init__(label=name[:80])
         self.gen_name = name
 
     async def callback(self, interaction):
-        # ✅ Always defer first
         await interaction.response.defer()
 
         data = await api_get(API_GET)
@@ -168,26 +168,28 @@ class JumpButton(discord.ui.Button):
 
         view = self.view
 
-        # ✅ Apply server filter
+        # ✅ SAFE server filtering (FIXED)
         if view.server_filter:
             data = [
                 g for g in data
-                if g.get("server") == view.server_filter
+                if str(g.get("server")).strip() == str(view.server_filter).strip()
             ]
 
-        # ✅ Sort same as dashboard
+        if not data:
+            return await interaction.followup.send(
+                "❌ No generators found for this server",
+                ephemeral=True
+            )
+
         data.sort(key=lambda g: float(g["days"]))
 
-        # ✅ Find index
         index = next(
             (i for i, g in enumerate(data) if g["name"] == self.gen_name),
             0
         )
 
-        # ✅ Calculate page
         page = index // PER_PAGE
 
-        # ✅ EDIT ORIGINAL MESSAGE SAFELY
         await interaction.followup.edit_message(
             interaction.message.id,
             content=f"📍 Jumped to: {self.gen_name}",
@@ -205,12 +207,12 @@ class JumpButton(discord.ui.Button):
             )
         )
 
-        # ✅ SEND ACTION MENU
         await interaction.followup.send(
             f"⚡ {self.gen_name}",
             view=ActionView(self.gen_name),
             ephemeral=True
         )
+
 
 
 
