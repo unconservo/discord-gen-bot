@@ -319,7 +319,7 @@ def format_time(days):
 
 
 
-rom datetime import datetime
+from datetime import datetime
 
 def build_embed(data, page=0, server_filter=None, highlight=None):
 
