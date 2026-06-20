@@ -151,14 +151,18 @@ class JumpView(discord.ui.View):
 
 
 
+
 class JumpButton(discord.ui.Button):
     def __init__(self, name):
         super().__init__(label=name[:80])
         self.gen_name = name
 
     async def callback(self, interaction):
-        # ✅ Prevent "thinking forever"
-        await interaction.response.defer()
+        # ✅ Respond immediately (NO waiting)
+        await interaction.response.send_message(
+            f"⏳ Loading {self.gen_name}...",
+            ephemeral=True
+        )
 
         data = await api_get(API_GET)
 
@@ -170,31 +174,27 @@ class JumpButton(discord.ui.Button):
 
         view = self.view
 
-        # ✅ FIXED SERVER FILTER (loose match)
+        # ✅ FIXED server filtering
         if view.server_filter:
             data = [
                 g for g in data
                 if view.server_filter.lower() in str(g.get("server", "")).lower()
             ]
 
-        # ✅ FALLBACK (prevents empty results)
+        # ✅ fallback
         if not data:
-            print("⚠️ FILTER REMOVED (NO MATCH)")
             data = await api_get(API_GET)
 
-        # ✅ Sort same as dashboard
         data.sort(key=lambda g: float(g["days"]))
 
-        # ✅ Find generator index
         index = next(
             (i for i, g in enumerate(data) if g["name"] == self.gen_name),
             0
         )
 
-        # ✅ Calculate page
         page = index // PER_PAGE
 
-        # ✅ Update dashboard safely
+        # ✅ EDIT MAIN DASHBOARD MESSAGE
         await interaction.followup.edit_message(
             interaction.message.id,
             content=f"📍 Jumped to: {self.gen_name}",
@@ -212,12 +212,13 @@ class JumpButton(discord.ui.Button):
             )
         )
 
-        # ✅ Auto open action menu
+        # ✅ ACTION MENU
         await interaction.followup.send(
             f"⚡ {self.gen_name}",
             view=ActionView(self.gen_name),
             ephemeral=True
         )
+
 
 
 
