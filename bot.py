@@ -682,13 +682,23 @@ class SearchInputButton(discord.ui.Button):
 
 
 
+
 class ServerSelect(discord.ui.Select):
     def __init__(self, data):
-        servers = list(set(g.get("server", "Unknown") for g in data))
+        servers = list({
+            str(g.get("server")).strip()
+            for g in data
+            if g.get("server")
+        })
+
         servers.sort()
 
         options = [discord.SelectOption(label="All Servers", value="ALL")]
-        options += [discord.SelectOption(label=s, value=s) for s in servers]
+
+        for s in servers:
+            options.append(
+                discord.SelectOption(label=s, value=s)
+            )
 
         super().__init__(
             placeholder="Filter by server...",
@@ -699,13 +709,21 @@ class ServerSelect(discord.ui.Select):
         view = self.view
         selected = self.values[0]
 
-        view.server_filter = selected if selected != "ALL" else None
+        view.server_filter = None if selected == "ALL" else selected
 
         await interaction.response.edit_message(
-            embed=build_embed(view.data, view.page, view.server_filter),
-            view=MainView(view.data, view.page, view.tab, view.server_filter)
+            embed=build_embed(
+                view.data,
+                view.page,
+                view.server_filter
+            ),
+            view=MainView(
+                view.data,
+                view.page,
+                view.tab,
+                view.server_filter
+            )
         )
-
 
 
 
