@@ -148,13 +148,23 @@ class JumpView(discord.ui.View):
 
 
 
+
 class JumpButton(discord.ui.Button):
     def __init__(self, name):
         super().__init__(label=name[:80])
         self.gen_name = name
 
     async def callback(self, interaction):
+        # ✅ Always defer first
+        await interaction.response.defer()
+
         data = await api_get(API_GET)
+
+        if not data:
+            return await interaction.followup.send(
+                "❌ Failed to load data",
+                ephemeral=True
+            )
 
         view = self.view
 
@@ -177,8 +187,9 @@ class JumpButton(discord.ui.Button):
         # ✅ Calculate page
         page = index // PER_PAGE
 
-        # ✅ Update dashboard (THIS BLOCK MUST CLOSE PROPERLY ✅)
-        await interaction.response.edit_message(
+        # ✅ EDIT ORIGINAL MESSAGE SAFELY
+        await interaction.followup.edit_message(
+            interaction.message.id,
             content=f"📍 Jumped to: {self.gen_name}",
             embed=build_embed(
                 data,
@@ -194,7 +205,7 @@ class JumpButton(discord.ui.Button):
             )
         )
 
-        # ✅ Auto open action menu
+        # ✅ SEND ACTION MENU
         await interaction.followup.send(
             f"⚡ {self.gen_name}",
             view=ActionView(self.gen_name),
