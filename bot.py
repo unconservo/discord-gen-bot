@@ -786,6 +786,37 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
 
 
 
+class SubzoneModal(discord.ui.Modal, title="Update Subzone"):
+    subzone = discord.ui.TextInput(
+        label="Subzone",
+        required=True,
+        max_length=100
+    )
+
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+
+    async def on_submit(self, interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        await api_get(
+            API_UPDATE,
+            {
+                "name": self.name,
+                "subzone": self.subzone.value
+            }
+        )
+
+        await interaction.followup.send(
+            f"✅ Subzone updated to: {self.subzone.value}",
+            ephemeral=True
+        )
+
+        await refresh_dashboard()
+
+
+
 # ========================
 # DELETE
 # ========================
@@ -836,22 +867,41 @@ class ConfirmDelete(discord.ui.View):
 # ========================
 # ACTION VIEW
 # ========================
+
 class ActionView(discord.ui.View):
     def __init__(self, name):
         super().__init__()
         self.name = name
 
-    @discord.ui.button(label="⛽ Refuel", style=discord.ButtonStyle.success)
+    @discord.ui.button(
+        label="⛽ Refuel",
+        style=discord.ButtonStyle.success
+    )
     async def refuel(self, interaction, button):
-        await interaction.response.send_modal(RefuelModal(self.name))
+        await interaction.response.send_modal(
+            RefuelModal(self.name)
+        )
 
-    @discord.ui.button(label="🗑 Delete", style=discord.ButtonStyle.danger)
+    @discord.ui.button(
+        label="📝 Subzone",
+        style=discord.ButtonStyle.primary
+    )
+    async def subzone(self, interaction, button):
+        await interaction.response.send_modal(
+            SubzoneModal(self.name)
+        )
+
+    @discord.ui.button(
+        label="🗑 Delete",
+        style=discord.ButtonStyle.danger
+    )
     async def delete(self, interaction, button):
         await interaction.response.send_message(
             f"Delete {self.name}?",
             view=ConfirmDelete(self.name),
             ephemeral=True
         )
+
 
 # ========================
 # SELECTS
