@@ -1288,6 +1288,7 @@ class TabButton(discord.ui.Button):
 
 
 
+
 class MainView(discord.ui.View):
     def __init__(
         self,
@@ -1315,39 +1316,44 @@ class MainView(discord.ui.View):
         # =========================
         # DASHBOARD TAB
         # =========================
-        
         if tab == "dashboard":
+
             self.add_item(ServerSelect(data))
 
             self.add_item(
                 SubzoneSelect(
                     data,
                     self.server_filter
+                )
             )
-        )
 
-        self.add_item(PrevButton())
-        self.add_item(NextButton())
+            self.add_item(PrevButton())
+            self.add_item(NextButton())
 
-        filtered = data
+            filtered = data
 
-        if self.server_filter:
-            filtered = [
-                g for g in filtered
-                if g.get("server") == self.server_filter
-            ]
+            if self.server_filter:
+                filtered = [
+                    g for g in filtered
+                    if g.get("server") == self.server_filter
+                ]
 
-        if self.subzone_filter:
-            filtered = [
-                g for g in filtered
-                if g.get("subzone") == self.subzone_filter
-            ]
+            if self.subzone_filter:
+                filtered = [
+                    g for g in filtered
+                    if g.get("subzone") == self.subzone_filter
+                ]
 
+            self.add_item(
+                GeneratorSelect(
+                    filtered,
+                    self.page
+                )
+            )
 
         # =========================
-        # SEARCH TAB ✅ FULL VERSION
+        # SEARCH TAB
         # =========================
-        
         elif tab == "search":
 
             self.add_item(ServerSelect(data))
@@ -1358,22 +1364,14 @@ class MainView(discord.ui.View):
                     self.server_filter
                 )
             )
-    
+
             filtered = data
 
-            
-        if self.server_filter:
-            filtered = [
-                g for g in filtered
-                if g.get("server") == self.server_filter
-            ]
-
-        if self.subzone_filter:
-            filtered = [
-                g for g in filtered
-                if g.get("subzone") == self.subzone_filter
-            ]
-
+            if self.server_filter:
+                filtered = [
+                    g for g in filtered
+                    if g.get("server") == self.server_filter
+                ]
 
             if self.subzone_filter:
                 filtered = [
@@ -1389,17 +1387,15 @@ class MainView(discord.ui.View):
             self.add_item(NextButton())
 
             self.add_item(SearchSelect(page_data))
-
             self.add_item(SearchInputButton())
-
             self.add_item(CriticalButton())
             self.add_item(ShowAllButton())
 
-
         # =========================
         # TOOLS TAB
         # =========================
         elif tab == "tools":
+
             self.add_item(AddButton())
             self.add_item(UndoButton())
             self.add_item(BackupButton())
@@ -1407,18 +1403,6 @@ class MainView(discord.ui.View):
             self.add_item(ResetAlertsButton())
             self.add_item(HelpButton())
 
-
-
-        # =========================
-        # TOOLS TAB
-        # =========================
-        elif tab == "tools":
-            self.add_item(AddButton())
-            self.add_item(UndoButton())
-            self.add_item(BackupButton())
-            self.add_item(CSVButton())
-            self.add_item(ResetAlertsButton())
-            self.add_item(HelpButton())
 
 
 # ========================
