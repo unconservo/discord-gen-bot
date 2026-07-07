@@ -597,10 +597,12 @@ class SearchResultsNextButton(discord.ui.Button):
 
 from datetime import datetime
 
+
 class AddModal(discord.ui.Modal, title="Add Generator"):
     name = discord.ui.TextInput(label="Name")
     days = discord.ui.TextInput(label="Days")
     server = discord.ui.TextInput(label="Server")
+    subzone = discord.ui.TextInput(label="Subzone")
 
     async def on_submit(self, interaction):
         await interaction.response.defer(ephemeral=True)
@@ -608,13 +610,16 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
         try:
             val = float(self.days.value)
         except:
-            return await interaction.followup.send("❌ Invalid number", ephemeral=True)
+            return await interaction.followup.send(
+                "❌ Invalid number",
+                ephemeral=True
+            )
 
         await api_get(API_ADD, {
             "name": self.name.value,
             "days": val,
             "server": self.server.value,
-            "updated_at": datetime.utcnow().isoformat()  # ✅ NEW
+            "subzone": self.subzone.value
         })
 
         await log_action(
@@ -625,9 +630,13 @@ class AddModal(discord.ui.Modal, title="Add Generator"):
             f"{val:.1f}d"
         )
 
-        await interaction.followup.send("✅ Generator added", ephemeral=True)
+        await interaction.followup.send(
+            "✅ Generator added",
+            ephemeral=True
+        )
 
         await refresh_dashboard()
+
 
 
 
@@ -867,6 +876,67 @@ class ServerSelect(discord.ui.Select):
                 view.server_filter
             )
         )
+
+class SubzoneSelect(discord.ui.Select):
+    def __init__(self, data, server_filter=None):
+        subzones = sorted({
+            str(g.get("subzone")).strip()
+            for g in data
+            if g.get("subzone")
+            and (
+                not server_filter
+                or g.get("server") == server_filter
+            )
+        })
+
+        options = [
+            discord.SelectOption(
+                label="All Subzones",
+                value="ALL"
+            )
+        ]
+
+        for s in subzones:
+            options.append(
+                discord.SelectOption(
+                    label=s,
+                    value=s
+                )
+            )
+
+        super().__init__(
+            placeholder="Filter by subzone...",
+            options=options
+        )
+
+    async def callback(self, interaction):
+        view = self.view
+
+        selected = self.values[0]
+
+        view.subzone_filter = (
+            None if selected == "ALL"
+            else selected
+        )
+
+        await interaction.response.edit_message(
+            embed=build_embed(
+                view.data,
+                view.page,
+                view.server_filter,
+                view.subzone_filter
+            ),
+            view=MainView(
+                view.data,
+                view.page,
+                view.tab,
+                view.server_filter,
+                view.subzone_filter
+            )
+        )
+
+
+
 
 
 
@@ -1140,14 +1210,23 @@ class TabButton(discord.ui.Button):
 
 
 
+
 class MainView(discord.ui.View):
-    def __init__(self, data, page=0, tab="dashboard", server_filter=None):
+    def __init__(
+        self,
+        data,
+        page=0,
+        tab="dashboard",
+        server_filter=None,
+        subzone_filter=None
+    ):
         super().__init__(timeout=None)
 
         self.data = data
         self.page = page
         self.tab = tab
         self.server_filter = server_filter
+        self.subzone_filter = subzone_filter
 
         # =========================
         # TABS
