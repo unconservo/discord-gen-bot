@@ -138,23 +138,6 @@ async def refresh_dashboard():
 
 
 
-class JumpView(discord.ui.View):
-    def __init__(self, results, full_data, server_filter):
-        super().__init__(timeout=120)
-
-        self.results = results
-        self.full_data = full_data
-        self.server_filter = server_filter
-
-        self.add_item(
-            SearchResultSelect(
-                results,
-                server_filter
-            )
-        )
-
-
-
 
 
 class JumpButton(discord.ui.Button):
@@ -470,13 +453,23 @@ class NextButton(discord.ui.Button):
 
 
 
+
 class SearchResultSelect(discord.ui.Select):
-    def __init__(self, results, server_filter):
+    def __init__(self, results, server_filter, page=0):
+        self.results = results
         self.server_filter = server_filter
+        self.page = page
+
+        PER_PAGE = 25
+
+        start = page * PER_PAGE
+        end = start + PER_PAGE
+
+        page_results = results[start:end]
 
         options = []
 
-        for g in results[:25]:
+        for g in page_results:
             options.append(
                 discord.SelectOption(
                     label=g["name"][:100],
@@ -506,7 +499,6 @@ class SearchResultSelect(discord.ui.Select):
 
         page = index // PER_PAGE
 
-        # Update dashboard
         await interaction.response.edit_message(
             content=f"📍 Jumped to: {gen_name}",
             embed=build_embed(
@@ -523,12 +515,82 @@ class SearchResultSelect(discord.ui.Select):
             )
         )
 
-        # ✅ Restore Action Menu
         await interaction.followup.send(
             f"⚡ {gen_name}",
             view=ActionView(gen_name),
             ephemeral=True
         )
+
+
+
+class SearchResultsView(discord.ui.View):
+    def __init__(self, results, server_filter, page=0):
+        super().__init__(timeout=120)
+
+        self.results = results
+        self.server_filter = server_filter
+        self.page = page
+
+        PER_PAGE = 25
+        total_pages = max(
+            1,
+            (len(results) - 1) // PER_PAGE + 1
+        )
+
+        self.add_item(
+            SearchResultSelect(
+                results,
+                server_filter,
+                page
+            )
+        )
+
+        if page > 0:
+            self.add_item(SearchResultsPrevButton())
+
+        if page < total_pages - 1:
+            self.add_item(SearchResultsNextButton())
+
+
+
+class SearchResultsPrevButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="⬅ Previous",
+            style=discord.ButtonStyle.secondary
+        )
+
+    async def callback(self, interaction):
+        view = self.view
+
+        await interaction.response.edit_message(
+            view=SearchResultsView(
+                view.results,
+                view.server_filter,
+                view.page - 1
+            )
+        )
+
+
+
+class SearchResultsNextButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="Next ➡",
+            style=discord.ButtonStyle.secondary
+        )
+
+    async def callback(self, interaction):
+        view = self.view
+
+        await interaction.response.edit_message(
+            view=SearchResultsView(
+                view.results,
+                view.server_filter,
+                view.page + 1
+            )
+        )
+
 
 
 
@@ -693,6 +755,7 @@ class ActionView(discord.ui.View):
 # SELECTS
 # ========================
 
+
 class SearchModal(discord.ui.Modal, title="Search Generator"):
     query = discord.ui.TextInput(
         label="Generator Name",
@@ -709,14 +772,15 @@ class SearchModal(discord.ui.Modal, title="Search Generator"):
 
         data = await api_get(API_GET)
 
-        query = self.query.value.lower().strip()
-
+        # Apply server filter if selected
         if self.view_ref.server_filter:
             data = [
                 g for g in data
                 if str(g.get("server", "")).strip()
                 == str(self.view_ref.server_filter).strip()
             ]
+
+        query = self.query.value.lower().strip()
 
         results = [
             g for g in data
@@ -731,15 +795,24 @@ class SearchModal(discord.ui.Modal, title="Search Generator"):
 
         results.sort(key=lambda g: float(g["days"]))
 
+        total_pages = max(
+            1,
+            (len(results) - 1) // 25 + 1
+        )
+
         await interaction.followup.send(
-            f"✅ Found {len(results)} matching generators.",
-            view=JumpView(
+            (
+                f"✅ Found {len(results)} matching generators.\n"
+                f"📄 Page 1/{total_pages}"
+            ),
+            view=SearchResultsView(
                 results,
-                data,
-                self.view_ref.server_filter
+                self.view_ref.server_filter,
+                page=0
             ),
             ephemeral=True
         )
+
 
 
 class SearchInputButton(discord.ui.Button):
