@@ -143,7 +143,7 @@ class JumpView(discord.ui.View):
         self.full_data = full_data
         self.server_filter = server_filter
 
-        for g in results[:50]:  # limit to 10 buttons
+        for g in results[:40]:  # limit to 10 buttons
             self.add_item(JumpButton(g["name"]))
 
 
