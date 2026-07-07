@@ -518,11 +518,13 @@ class SearchModal(discord.ui.Modal, title="Search Generator"):
 
         if not results:
             return await interaction.followup.send(
+                
                 "❌ No matching generators",
                 ephemeral=True
             )
 
         results.sort(key=lambda g: float(g["days"]))
+        print(f"SEARCH FOUND {len(results)} RESULTS")
 
         server_label = self.view_ref.server_filter or "All Servers"
 
