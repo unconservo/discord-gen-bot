@@ -335,59 +335,110 @@ def format_time(days):
 
 from datetime import datetime
 
-def build_embed(data, page=0, server_filter=None, highlight=None):
+
+def build_embed(
+    data,
+    page=0,
+    server_filter=None,
+    subzone_filter=None,
+    highlight=None
+):
 
     if server_filter:
-        data = [g for g in data if g.get("server") == server_filter]
+        data = [
+            g for g in data
+            if g.get("server") == server_filter
+        ]
+
+    if subzone_filter:
+        data = [
+            g for g in data
+            if g.get("subzone") == subzone_filter
+        ]
 
     title = "⚡ Generator Dashboard"
+
     if server_filter:
         title += f" — {server_filter}"
 
-    embed = discord.Embed(title=title, color=0x00ff99)
+    if subzone_filter:
+        title += f" | {subzone_filter}"
+
+    embed = discord.Embed(
+        title=title,
+        color=0x00ff99
+    )
 
     if not data:
         embed.description = "No generators found"
         return embed
 
-    data.sort(key=lambda g: float(g["days"]))
+    data.sort(
+        key=lambda g: (
+            str(g.get("subzone", "")),
+            float(g["days"])
+        )
+    )
 
     start = page * PER_PAGE
     end = start + PER_PAGE
     slice_data = data[start:end]
 
+    current_subzone = None
+
     for g in slice_data:
+
+        subzone = g.get(
+            "subzone",
+            "Unassigned"
+        )
+
+        if subzone != current_subzone:
+            current_subzone = subzone
+
+            embed.add_field(
+                name=f"📍 {subzone}",
+                value="────────────────",
+                inline=False
+            )
+
         days = float(g["days"])
 
-        # ✅ NEW: Handle timestamp countdown OR fallback
         if "updated_at" in g and g["updated_at"]:
             try:
-                last_update = datetime.fromisoformat(g["updated_at"])
+                last_update = datetime.fromisoformat(
+                    g["updated_at"]
+                )
+
                 now = datetime.utcnow()
 
-                elapsed_days = (now - last_update).total_seconds() / 86400
-                days -= elapsed_days
-            except:
-                # ✅ fallback if parsing fails
-                days = float(g["days"])
-        else:
-            # ✅ fallback if no timestamp (old records)
-            days = float(g["days"])
+                elapsed_days = (
+                    now - last_update
+                ).total_seconds() / 86400
 
-        # ✅ Clamp value
+                days -= elapsed_days
+
+            except:
+                days = float(g["days"])
+
         if days < 0:
             days = 0
 
         name_text = g["name"]
 
-        # ✅ Highlight (if jumping from search)
         if highlight and g["name"] == highlight:
             name_text = f"👉 {g['name']}"
 
         if days <= 5:
-            value = f"**{format_time(days)} CRITICAL 🚨**"
+            value = (
+                f"**{format_time(days)} "
+                f"CRITICAL 🚨**"
+            )
         elif days <= 10:
-            value = f"**{format_time(days)} LOW ⚠️**"
+            value = (
+                f"**{format_time(days)} "
+                f"LOW ⚠️**"
+            )
         else:
             value = f"{format_time(days)} ✅"
 
@@ -397,10 +448,17 @@ def build_embed(data, page=0, server_filter=None, highlight=None):
             inline=False
         )
 
-    total_pages = max(1, (len(data) - 1) // PER_PAGE + 1)
-    embed.set_footer(text=f"Page {page+1}/{total_pages}")
+    total_pages = max(
+        1,
+        (len(data) - 1) // PER_PAGE + 1
+    )
+
+    embed.set_footer(
+        text=f"Page {page+1}/{total_pages}"
+    )
 
     return embed
+
 
 
 
@@ -835,6 +893,7 @@ class SearchInputButton(discord.ui.Button):
 
 
 
+
 class ServerSelect(discord.ui.Select):
     def __init__(self, data):
         servers = list({
@@ -845,11 +904,19 @@ class ServerSelect(discord.ui.Select):
 
         servers.sort()
 
-        options = [discord.SelectOption(label="All Servers", value="ALL")]
+        options = [
+            discord.SelectOption(
+                label="All Servers",
+                value="ALL"
+            )
+        ]
 
         for s in servers:
             options.append(
-                discord.SelectOption(label=s, value=s)
+                discord.SelectOption(
+                    label=s,
+                    value=s
+                )
             )
 
         super().__init__(
@@ -859,23 +926,33 @@ class ServerSelect(discord.ui.Select):
 
     async def callback(self, interaction):
         view = self.view
+
         selected = self.values[0]
 
-        view.server_filter = None if selected == "ALL" else selected
+        view.server_filter = (
+            None if selected == "ALL"
+            else selected
+        )
+
+        view.subzone_filter = None
 
         await interaction.response.edit_message(
             embed=build_embed(
                 view.data,
                 view.page,
-                view.server_filter
+                view.server_filter,
+                None
             ),
             view=MainView(
                 view.data,
                 view.page,
                 view.tab,
-                view.server_filter
+                view.server_filter,
+                None
             )
         )
+
+
 
 class SubzoneSelect(discord.ui.Select):
     def __init__(self, data, server_filter=None):
@@ -885,7 +962,7 @@ class SubzoneSelect(discord.ui.Select):
             if g.get("subzone")
             and (
                 not server_filter
-                or g.get("server") == server_filter
+                or str(g.get("server")) == str(server_filter)
             )
         })
 
@@ -1238,53 +1315,86 @@ class MainView(discord.ui.View):
         # =========================
         # DASHBOARD TAB
         # =========================
+        
         if tab == "dashboard":
             self.add_item(ServerSelect(data))
-            self.add_item(PrevButton())
-            self.add_item(NextButton())
 
-            filtered = data
-            if self.server_filter:
-                filtered = [
-                    g for g in data
-                    if g.get("server") == self.server_filter
-                ]
+            self.add_item(
+                SubzoneSelect(
+                    data,
+                    self.server_filter
+            )
+        )
 
-            self.add_item(GeneratorSelect(filtered, self.page))
+        self.add_item(PrevButton())
+        self.add_item(NextButton())
+
+        filtered = data
+
+        if self.server_filter:
+            filtered = [
+                g for g in filtered
+                if g.get("server") == self.server_filter
+            ]
+
+        if self.subzone_filter:
+            filtered = [
+                g for g in filtered
+                if g.get("subzone") == self.subzone_filter
+            ]
+
 
         # =========================
         # SEARCH TAB ✅ FULL VERSION
         # =========================
+        
         elif tab == "search":
-            # ✅ Server dropdown
+
             self.add_item(ServerSelect(data))
 
-            # ✅ Apply server filter
+            self.add_item(
+                SubzoneSelect(
+                    data,
+                    self.server_filter
+                )
+            )
+    
             filtered = data
-            if self.server_filter:
+
+            
+        if self.server_filter:
+            filtered = [
+                g for g in filtered
+                if g.get("server") == self.server_filter
+            ]
+
+        if self.subzone_filter:
+            filtered = [
+                g for g in filtered
+                if g.get("subzone") == self.subzone_filter
+            ]
+
+
+            if self.subzone_filter:
                 filtered = [
-                    g for g in data
-                    if g.get("server") == self.server_filter
+                    g for g in filtered
+                    if g.get("subzone") == self.subzone_filter
                 ]
 
-            # ✅ Pagination
             start = self.page * PER_PAGE
             end = start + PER_PAGE
             page_data = filtered[start:end]
 
-            # ✅ Navigation
             self.add_item(PrevButton())
             self.add_item(NextButton())
 
-            # ✅ Dropdown (page results)
             self.add_item(SearchSelect(page_data))
 
-            # ✅ NEW: Partial search modal
             self.add_item(SearchInputButton())
 
-            # ✅ Quick actions
             self.add_item(CriticalButton())
             self.add_item(ShowAllButton())
+
 
         # =========================
         # TOOLS TAB
