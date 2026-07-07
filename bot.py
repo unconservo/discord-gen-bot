@@ -41,7 +41,7 @@ last_refuel_user = {}     # ✅ NEW: tracks who refueled
 
 API_KEY = "SUPER_SECRET_KEY"  # ✅ MUST MATCH PHP
 
-PER_PAGE = 25
+PER_PAGE = 15
 
 SERVER_ROLES = {
     "2491": 1516430449520545876, 
@@ -553,7 +553,7 @@ class SearchResultSelect(discord.ui.Select):
         self.server_filter = server_filter
         self.page = page
 
-        PER_PAGE = 25
+        PER_PAGE = 15
 
         start = page * PER_PAGE
         end = start + PER_PAGE
@@ -624,7 +624,7 @@ class SearchResultsView(discord.ui.View):
         self.server_filter = server_filter
         self.page = page
 
-        PER_PAGE = 25
+        PER_PAGE = 15
         total_pages = max(
             1,
             (len(results) - 1) // PER_PAGE + 1
@@ -899,7 +899,7 @@ class SearchModal(discord.ui.Modal, title="Search Generator"):
 
         total_pages = max(
             1,
-            (len(results) - 1) // 25 + 1
+            (len(results) - 1) // 15 + 1
         )
 
         await interaction.followup.send(
