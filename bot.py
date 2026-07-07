@@ -469,6 +469,7 @@ class NextButton(discord.ui.Button):
 
 
 
+
 class SearchResultSelect(discord.ui.Select):
     def __init__(self, results, server_filter):
         self.server_filter = server_filter
@@ -505,6 +506,7 @@ class SearchResultSelect(discord.ui.Select):
 
         page = index // PER_PAGE
 
+        # Update dashboard
         await interaction.response.edit_message(
             content=f"📍 Jumped to: {gen_name}",
             embed=build_embed(
@@ -519,6 +521,13 @@ class SearchResultSelect(discord.ui.Select):
                 "dashboard",
                 self.server_filter
             )
+        )
+
+        # ✅ Restore Action Menu
+        await interaction.followup.send(
+            f"⚡ {gen_name}",
+            view=ActionView(gen_name),
+            ephemeral=True
         )
 
 
