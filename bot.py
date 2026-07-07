@@ -485,55 +485,71 @@ class NextButton(discord.ui.Button):
 
 
 
-class SearchModal(discord.ui.Modal, title="Search Generator"):
-    query = discord.ui.TextInput(
-        label="Enter generator name",
-        placeholder="Type part of the name (e.g. gen, 19, base)",
-        required=True
-    )
 
-    def __init__(self, view):
-        super().__init__()
-        self.view_ref = view
+class SearchResultSelect(discord.ui.Select):
+    def __init__(self, results, server_filter):
+        self.results = results
+        self.server_filter = server_filter
 
-    async def on_submit(self, interaction):
-        await interaction.response.defer(ephemeral=True)
+        options = []
+
+        for g in results[:25]:
+            options.append(
+                discord.SelectOption(
+                    label=g["name"][:100],
+                    value=g["name"]
+                )
+            )
+
+        super().__init__(
+            placeholder="Select Generator...",
+            options=options
+        )
+
+    async def callback(self, interaction):
+        gen_name = self.values[0]
 
         data = await api_get(API_GET)
 
-        # ✅ Apply server filter
-        if self.view_ref.server_filter:
+        if self.server_filter:
             data = [
                 g for g in data
-                if str(g.get("server")).strip() == str(self.view_ref.server_filter).strip()
+                if str(g.get("server", "")).strip() ==
+                str(self.server_filter).strip()
             ]
 
-        # ✅ Partial match
-        query = self.query.value.lower().strip()
+        data.sort(key=lambda g: float(g["days"]))
 
-        results = [
-            g for g in data
-            if query in g["name"].lower()
-        ]
+        index = next(
+            (i for i, g in enumerate(data)
+             if g["name"] == gen_name),
+            0
+        )
 
-        if not results:
-            return await interaction.followup.send(
-                
-                "❌ No matching generators",
-                ephemeral=True
+        page = index // PER_PAGE
+
+        await interaction.response.edit_message(
+            content=f"📍 Jumped to: {gen_name}",
+            embed=build_embed(
+                data,
+                page,
+                self.server_filter,
+                highlight=gen_name
+            ),
+            view=MainView(
+                data,
+                page,
+                "dashboard",
+                self.server_filter
             )
+        )
 
-        results.sort(key=lambda g: float(g["days"]))
-        print(f"SEARCH FOUND {len(results)} RESULTS")
-
-        server_label = self.view_ref.server_filter or "All Servers"
-
-        # ✅ Send buttons instead of text
         await interaction.followup.send(
-            f"🔎 Results for: `{query}`\n[{server_label}]",
-            view=JumpView(results, data, self.view_ref.server_filter),
+            f"⚡ {gen_name}",
+            view=ActionView(gen_name),
             ephemeral=True
         )
+
 
 
 
