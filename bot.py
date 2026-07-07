@@ -137,39 +137,21 @@ async def refresh_dashboard():
 
 
 
+
 class JumpView(discord.ui.View):
-    def __init__(self, results, full_data, server_filter, page=0):
+    def __init__(self, results, full_data, server_filter):
         super().__init__(timeout=120)
 
         self.results = results
         self.full_data = full_data
         self.server_filter = server_filter
-        self.page = page
 
-        PER_PAGE = 20
-
-        start = page * PER_PAGE
-        end = start + PER_PAGE
-
-        page_results = results[start:end]
-
-        # Generator buttons
-        for g in page_results:
-            self.add_item(JumpButton(g["name"]))
-
-        total_pages = max(
-            1,
-            (len(results) - 1) // PER_PAGE + 1
+        self.add_item(
+            SearchResultSelect(
+                results,
+                server_filter
+            )
         )
-
-        # Previous button
-        if page > 0:
-            self.add_item(SearchPrevButton())
-
-        # Next button
-        if page < total_pages - 1:
-            self.add_item(SearchNextButton())
-
 
 
 
@@ -486,9 +468,9 @@ class NextButton(discord.ui.Button):
 
 
 
+
 class SearchResultSelect(discord.ui.Select):
     def __init__(self, results, server_filter):
-        self.results = results
         self.server_filter = server_filter
 
         options = []
@@ -502,7 +484,7 @@ class SearchResultSelect(discord.ui.Select):
             )
 
         super().__init__(
-            placeholder="Select Generator...",
+            placeholder=f"Select Generator ({len(results)} found)",
             options=options
         )
 
@@ -511,18 +493,13 @@ class SearchResultSelect(discord.ui.Select):
 
         data = await api_get(API_GET)
 
-        if self.server_filter:
-            data = [
-                g for g in data
-                if str(g.get("server", "")).strip() ==
-                str(self.server_filter).strip()
-            ]
-
         data.sort(key=lambda g: float(g["days"]))
 
         index = next(
-            (i for i, g in enumerate(data)
-             if g["name"] == gen_name),
+            (
+                i for i, g in enumerate(data)
+                if g["name"] == gen_name
+            ),
             0
         )
 
@@ -542,12 +519,6 @@ class SearchResultSelect(discord.ui.Select):
                 "dashboard",
                 self.server_filter
             )
-        )
-
-        await interaction.followup.send(
-            f"⚡ {gen_name}",
-            view=ActionView(gen_name),
-            ephemeral=True
         )
 
 
@@ -712,6 +683,54 @@ class ActionView(discord.ui.View):
 # ========================
 # SELECTS
 # ========================
+
+class SearchModal(discord.ui.Modal, title="Search Generator"):
+    query = discord.ui.TextInput(
+        label="Generator Name",
+        placeholder="Type part of the generator name...",
+        required=True
+    )
+
+    def __init__(self, view):
+        super().__init__()
+        self.view_ref = view
+
+    async def on_submit(self, interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        data = await api_get(API_GET)
+
+        query = self.query.value.lower().strip()
+
+        if self.view_ref.server_filter:
+            data = [
+                g for g in data
+                if str(g.get("server", "")).strip()
+                == str(self.view_ref.server_filter).strip()
+            ]
+
+        results = [
+            g for g in data
+            if query in g["name"].lower()
+        ]
+
+        if not results:
+            return await interaction.followup.send(
+                "❌ No matching generators found.",
+                ephemeral=True
+            )
+
+        results.sort(key=lambda g: float(g["days"]))
+
+        await interaction.followup.send(
+            f"✅ Found {len(results)} matching generators.",
+            view=JumpView(
+                results,
+                data,
+                self.view_ref.server_filter
+            ),
+            ephemeral=True
+        )
 
 
 class SearchInputButton(discord.ui.Button):
@@ -1175,4 +1194,4 @@ if __name__ == "__main__":
             time.sleep(10)
 
 
-bot.run(TOKEN)
+
