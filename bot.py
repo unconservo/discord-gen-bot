@@ -136,16 +136,39 @@ async def refresh_dashboard():
 # ========================
 
 
-class JumpView(discord.ui.View):
-    def __init__(self, results, full_data, server_filter):
-        super().__init__(timeout=60)
 
+class JumpView(discord.ui.View):
+    def __init__(self, results, full_data, server_filter, page=0):
+        super().__init__(timeout=120)
+
+        self.results = results
         self.full_data = full_data
         self.server_filter = server_filter
-        print(f"Found {len(results)} matching generators")
-        for g in results[:25]:  # limit to 10 buttons
+        self.page = page
+
+        PER_PAGE = 20
+
+        start = page * PER_PAGE
+        end = start + PER_PAGE
+
+        page_results = results[start:end]
+
+        # Generator buttons
+        for g in page_results:
             self.add_item(JumpButton(g["name"]))
 
+        total_pages = max(
+            1,
+            (len(results) - 1) // PER_PAGE + 1
+        )
+
+        # Previous button
+        if page > 0:
+            self.add_item(SearchPrevButton())
+
+        # Next button
+        if page < total_pages - 1:
+            self.add_item(SearchNextButton())
 
 
 
