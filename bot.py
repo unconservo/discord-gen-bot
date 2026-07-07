@@ -816,6 +816,35 @@ class SubzoneModal(discord.ui.Modal, title="Update Subzone"):
         await refresh_dashboard()
 
 
+class RenameModal(discord.ui.Modal, title="Rename Generator"):
+    new_name = discord.ui.TextInput(
+        label="New Generator Name",
+        required=True,
+        max_length=100
+    )
+
+    def __init__(self, name):
+        super().__init__()
+        self.old_name = name
+
+    async def on_submit(self, interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        await api_get(
+            API_UPDATE,
+            {
+                "name": self.old_name,
+                "new_name": self.new_name.value
+            }
+        )
+
+        await interaction.followup.send(
+            f"✅ Renamed to: {self.new_name.value}",
+            ephemeral=True
+        )
+
+        await refresh_dashboard()
+
 
 # ========================
 # DELETE
@@ -868,6 +897,7 @@ class ConfirmDelete(discord.ui.View):
 # ACTION VIEW
 # ========================
 
+
 class ActionView(discord.ui.View):
     def __init__(self, name):
         super().__init__()
@@ -892,6 +922,15 @@ class ActionView(discord.ui.View):
         )
 
     @discord.ui.button(
+        label="✏️ Rename",
+        style=discord.ButtonStyle.secondary
+    )
+    async def rename(self, interaction, button):
+        await interaction.response.send_modal(
+            RenameModal(self.name)
+        )
+
+    @discord.ui.button(
         label="🗑 Delete",
         style=discord.ButtonStyle.danger
     )
@@ -901,6 +940,7 @@ class ActionView(discord.ui.View):
             view=ConfirmDelete(self.name),
             ephemeral=True
         )
+
 
 
 # ========================
