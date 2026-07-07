@@ -1,4 +1,4 @@
-    
+        
 import discord
 from discord.ext import commands, tasks
 import requests
@@ -122,12 +122,23 @@ async def refresh_dashboard():
     data = await api_get(API_GET)
 
     try:
+        
         await dashboard_message.edit(
-            embed=build_embed(data, 0, None),
-            view=MainView(data, 0, "dashboard", None)
-
-
+            embed=build_embed(
+                data,
+                0,
+                None,
+                None
+            ),
+            view=MainView(
+                data,
+                0,
+                "dashboard",
+                None,
+                None
+            )
         )
+
     except Exception as e:
         print("Dashboard update failed:", e)
 
@@ -469,19 +480,31 @@ def build_embed(
 
 
 
+
 class PrevButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="⬅️")
 
     async def callback(self, interaction):
         view = self.view
+
         new_page = max(view.page - 1, 0)
 
         await interaction.response.edit_message(
-            embed=build_embed(view.data, new_page, view.server_filter),
-            view=MainView(view.data, new_page, view.tab, view.server_filter)
+            embed=build_embed(
+                view.data,
+                new_page,
+                view.server_filter,
+                view.subzone_filter
+            ),
+            view=MainView(
+                view.data,
+                new_page,
+                view.tab,
+                view.server_filter,
+                view.subzone_filter
+            )
         )
-
 
 
 class NextButton(discord.ui.Button):
@@ -490,12 +513,24 @@ class NextButton(discord.ui.Button):
 
     async def callback(self, interaction):
         view = self.view
+
         max_page = (len(view.data) - 1) // PER_PAGE
         new_page = min(view.page + 1, max_page)
 
         await interaction.response.edit_message(
-            embed=build_embed(view.data, new_page, view.server_filter),
-            view=MainView(view.data, new_page, view.tab, view.server_filter)
+            embed=build_embed(
+                view.data,
+                new_page,
+                view.server_filter,
+                view.subzone_filter
+            ),
+            view=MainView(
+                view.data,
+                new_page,
+                view.tab,
+                view.server_filter,
+                view.subzone_filter
+            )
         )
 
 
@@ -1267,6 +1302,7 @@ Alerts auto-track + resolve with user info ✅
 # TABS (SAFE FIX)
 # ========================
 
+
 class TabButton(discord.ui.Button):
     def __init__(self, label, tab):
         super().__init__(label=label)
@@ -1276,13 +1312,20 @@ class TabButton(discord.ui.Button):
         data = await api_get(API_GET)
 
         await interaction.response.edit_message(
-            embed=build_embed(data, 0, None),
-            view=MainView(data, 0, self.tab, None)
+            embed=build_embed(
+                data,
+                0,
+                None,
+                None
+            ),
+            view=MainView(
+                data,
+                0,
+                self.tab,
+                None,
+                None
+            )
         )
-
-
-
-
 
 
 
