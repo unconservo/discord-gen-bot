@@ -650,6 +650,7 @@ class SpamMenuButton(discord.ui.Button):
         )
 
 
+
 class SpamView(discord.ui.View):
     def __init__(self, server):
         super().__init__(timeout=None)
@@ -659,6 +660,11 @@ class SpamView(discord.ui.View):
         self.add_item(
             AddZoneButton(server)
         )
+
+        self.add_item(
+            DeleteZoneButton(server)
+        )
+
 
 
 
