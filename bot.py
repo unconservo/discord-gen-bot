@@ -298,6 +298,38 @@ class JumpButton(discord.ui.Button):
 # NEW CLASSES FOR NEW DASHBOARD FOR GENERATORS / SPAM / DINO FEED 
 
 
+class BackButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="⬅ Back",
+            style=discord.ButtonStyle.secondary
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.edit_message(
+            content=f"🌍 Server {self.server}",
+            embed=None,
+            view=ServerMenuView(self.server)
+        )
+
+
+class DinoFeedView(discord.ui.View):
+    def __init__(self, server):
+        super().__init__(timeout=None)
+
+        self.server = server
+
+        self.add_item(AddDinoFeedButton(server))
+        self.add_item(EditDinoFeedButton(server))
+        self.add_item(DeleteDinoFeedButton(server))
+        self.add_item(RefreshDinoFeedButton(server))
+        self.add_item(BackButton(server))
+
+
+
 
 
 class DeleteDinoFeedSelectView(discord.ui.View):
@@ -686,27 +718,19 @@ class RefreshSpamButton(discord.ui.Button):
 
 
 
+
 class SpamView(discord.ui.View):
     def __init__(self, server):
         super().__init__(timeout=None)
 
         self.server = server
 
-        self.add_item(
-            AddZoneButton(server)
-        )
+        self.add_item(AddZoneButton(server))
+        self.add_item(EditZoneButton(server))
+        self.add_item(DeleteZoneButton(server))
+        self.add_item(RefreshSpamButton(server))
+        self.add_item(BackButton(server))
 
-        self.add_item(
-            EditZoneButton(server)
-        )
-
-        self.add_item(
-            DeleteZoneButton(server)
-        )
-
-        self.add_item(
-            RefreshSpamButton(server)
-        )
 
 
 
@@ -2337,7 +2361,7 @@ class MainView(discord.ui.View):
 
             self.add_item(PrevButton())
             self.add_item(NextButton())
-
+            self.add_item(BackButton(self.server_filter))
             filtered = data
 
             if self.server_filter:
