@@ -297,6 +297,23 @@ class JumpButton(discord.ui.Button):
 
 # NEW CLASSES FOR NEW DASHBOARD FOR GENERATORS / SPAM / DINO FEED 
 
+class GeneratorBackButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="⬅ Back",
+            style=discord.ButtonStyle.secondary
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.edit_message(
+            content=f"🌍 Server {self.server}",
+            embed=None,
+            view=ServerMenuView(self.server)
+        )
+
 
 class BackButton(discord.ui.Button):
     def __init__(self, server):
@@ -2333,6 +2350,7 @@ class MainView(discord.ui.View):
         # =========================
         # DASHBOARD TAB
         # =========================
+        
         if tab == "dashboard":
 
             self.add_item(ServerSelect(data))
@@ -2346,8 +2364,16 @@ class MainView(discord.ui.View):
 
             self.add_item(PrevButton())
             self.add_item(NextButton())
-            self.add_item(BackButton(self.server_filter))
+
+            if self.server_filter:
+                self.add_item(
+                    GeneratorBackButton(
+                        self.server_filter
+                    )
+                )
+
             filtered = data
+
 
             if self.server_filter:
                 filtered = [
@@ -2407,7 +2433,7 @@ class MainView(discord.ui.View):
             self.add_item(SearchInputButton())
             self.add_item(CriticalButton())
             self.add_item(ShowAllButton())
-            self.add_item(BackButton(self.server_filter))
+
         # =========================
         # TOOLS TAB
         # =========================
@@ -2419,7 +2445,7 @@ class MainView(discord.ui.View):
             self.add_item(CSVButton())
             self.add_item(ResetAlertsButton())
             self.add_item(HelpButton())
-            self.add_item(BackButton(self.server_filter))
+
 
 
 # ========================
