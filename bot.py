@@ -298,6 +298,7 @@ class JumpButton(discord.ui.Button):
 # NEW CLASSES FOR NEW DASHBOARD FOR GENERATORS / SPAM / DINO FEED 
 
 
+
 class GeneratorBackButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -307,6 +308,15 @@ class GeneratorBackButton(discord.ui.Button):
         )
 
         self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.edit_message(
+            content=f"🌍 Server {self.server}",
+            embed=None,
+            view=ServerMenuView(self.server)
+        )
+
 
 
 
