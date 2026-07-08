@@ -316,17 +316,33 @@ class BackButton(discord.ui.Button):
         )
 
 
+
 class DinoFeedView(discord.ui.View):
     def __init__(self, server):
         super().__init__(timeout=None)
 
         self.server = server
 
-        self.add_item(AddDinoFeedButton(server))
-        self.add_item(EditDinoFeedButton(server))
-        self.add_item(DeleteDinoFeedButton(server))
-        self.add_item(RefreshDinoFeedButton(server))
-        self.add_item(BackButton(server))
+        self.add_item(
+            AddDinoFeedButton(server)
+        )
+
+        self.add_item(
+            EditDinoFeedButton(server)
+        )
+
+        self.add_item(
+            DeleteDinoFeedButton(server)
+        )
+
+        self.add_item(
+            RefreshDinoFeedButton(server)
+        )
+
+        self.add_item(
+            BackButton(server)
+        )
+
 
 
 
@@ -562,37 +578,6 @@ class DinoFeedMenuButton(discord.ui.Button):
             embed=embed,
             view=DinoFeedView(self.server)
         )
-
-
-
-
-
-
-class DinoFeedView(discord.ui.View):
-    def __init__(self, server):
-        super().__init__(timeout=None)
-
-        self.server = server
-
-        self.add_item(
-            AddDinoFeedButton(server)
-        )
-
-        self.add_item(
-            EditDinoFeedButton(server)
-        )
-
-        self.add_item(
-            DeleteDinoFeedButton(server)
-        )
-
-        self.add_item(
-            RefreshDinoFeedButton(server)
-        )
-
-
-
-
 
 
 
