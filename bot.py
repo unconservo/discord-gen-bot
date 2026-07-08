@@ -643,7 +643,7 @@ class SpamMenuButton(discord.ui.Button):
             
            
             embed.set_image(
-            url="https://i.imgur.com/ExdKOOz.png"
+            url="https://www.t-doc.co.za/discord/imagetest.php"
        )
 
 
