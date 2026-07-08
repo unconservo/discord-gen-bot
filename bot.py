@@ -26,6 +26,7 @@ API_DELETE = "https://www.t-doc.co.za/discord/delete.php"
 API_RESTORE = "https://www.t-doc.co.za/discord/restore.php"
 API_TRASH = "https://www.t-doc.co.za/discord/trash.php"
 API_CLEAR_ALL = "https://www.t-doc.co.za/discord/clear_all.php"
+API_DINO_FEED = "https://www.t-doc.co.za/discord/dino_feed.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
@@ -261,6 +262,7 @@ class GeneratorsMenuButton(discord.ui.Button):
         )
 
 
+
 class DinoFeedMenuButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -272,10 +274,61 @@ class DinoFeedMenuButton(discord.ui.Button):
 
     async def callback(self, interaction):
 
+        data = await api_get(
+            API_DINO_FEED,
+            {
+                "server": self.server
+            }
+        )
+
+        embed = discord.Embed(
+            title=f"🦖 Dino Feed - Server {self.server}",
+            color=0x00ff99
+        )
+
+        if not data:
+            embed.description = "No Dino Feed TPs configured."
+        else:
+            for row in data[:25]:
+                embed.add_field(
+                    name=row["tp_name"],
+                    value="✅ Active",
+                    inline=False
+                )
+
+        await interaction.response.edit_message(
+            content=None,
+            embed=embed,
+            view=DinoFeedView(self.server)
+        )
+
+class DinoFeedView(discord.ui.View):
+    def __init__(self, server):
+        super().__init__(timeout=None)
+
+        self.server = server
+
+        self.add_item(
+            AddDinoFeedButton(server)
+        )
+
+
+class AddDinoFeedButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="➕ Add TP",
+            style=discord.ButtonStyle.success
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
         await interaction.response.send_message(
-            f"🦖 Dino Feed for Server {self.server}\n\nComing next phase.",
+            "✅ Dino Feed Add coming next step.",
             ephemeral=True
         )
+
 
 
 class SpamMenuButton(discord.ui.Button):
