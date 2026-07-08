@@ -639,6 +639,91 @@ class AddZoneButton(discord.ui.Button):
 
 
 
+class RefreshSpamButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="🔄 Refresh",
+            style=discord.ButtonStyle.secondary
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.defer()
+
+        data = await api_get(
+            API_SPAM_ZONES,
+            {
+                "server": self.server
+            }
+        )
+
+        map_data = await api_get(
+            API_SPAM_MAP,
+            {
+                "server": self.server
+            }
+        )
+
+        embed = discord.Embed(
+            title=f"🏗 Spam - Server {self.server}",
+            color=0xff9900
+        )
+
+        if map_data and map_data.get("image_url"):
+            embed.set_image(
+                url=map_data["image_url"]
+            )
+
+        if not data:
+            embed.description = "No spam zones configured."
+        else:
+            for row in data[:25]:
+                embed.add_field(
+                    name=row["zone_name"],
+                    value=row["description"] or "No Description",
+                    inline=False
+                )
+
+        await interaction.edit_original_response(
+            content=None,
+            embed=embed,
+            view=SpamView(self.server)
+        )
+
+
+class RefreshGeneratorButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="🔄 Refresh",
+            style=discord.ButtonStyle.secondary,
+            row=4
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.defer()
+
+        data = await api_get(API_GET)
+
+        await interaction.edit_original_response(
+            content=None,
+            embed=build_embed(
+                data,
+                0,
+                self.server
+            ),
+            view=MainView(
+                data,
+                0,
+                "dashboard",
+                self.server
+            )
+        )
+
 
 
 class SpamMenuButton(discord.ui.Button):
@@ -726,22 +811,32 @@ class RefreshSpamButton(discord.ui.Button):
 
 
 
+
 class SpamView(discord.ui.View):
     def __init__(self, server):
         super().__init__(timeout=None)
 
         self.server = server
 
-        self.add_item(AddZoneButton(server))
-        self.add_item(EditZoneButton(server))
-        self.add_item(DeleteZoneButton(server))
-        self.add_item(RefreshSpamButton(server))
-        self.add_item(BackButton(server))
+        self.add_item(
+            AddZoneButton(server)
+        )
 
+        self.add_item(
+            EditZoneButton(server)
+        )
 
+        self.add_item(
+            DeleteZoneButton(server)
+        )
 
+        self.add_item(
+            RefreshSpamButton(server)
+        )
 
-
+        self.add_item(
+            BackButton(server)
+        )
 
 
 
@@ -2383,12 +2478,28 @@ class MainView(discord.ui.View):
                     if g.get("subzone") == self.subzone_filter
                 ]
 
+            
             self.add_item(
                 GeneratorSelect(
                     filtered,
                     self.page
                 )
             )
+
+            if self.server_filter:
+
+                self.add_item(
+                    RefreshGeneratorButton(
+                        self.server_filter
+                    )
+                )
+
+                self.add_item(
+                    GeneratorBackButton(
+                        self.server_filter
+                    )
+                )
+
 
         # =========================
         # SEARCH TAB
