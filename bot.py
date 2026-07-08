@@ -288,6 +288,49 @@ class DeleteDinoFeedButton(discord.ui.Button):
         )
 
 
+class RefreshDinoFeedButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="🔄 Refresh",
+            style=discord.ButtonStyle.secondary
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.defer()
+
+        data = await api_get(
+            API_DINO_FEED,
+            {
+                "server": self.server
+            }
+        )
+
+        embed = discord.Embed(
+            title=f"🦖 Dino Feed - Server {self.server}",
+            color=0x00ff99
+        )
+
+        if not data:
+            embed.description = "No Dino Feed TPs configured."
+        else:
+            for row in data[:25]:
+                embed.add_field(
+                    name=row["tp_name"],
+                    value="✅ Active",
+                    inline=False
+                )
+
+        await interaction.edit_original_response(
+            content=None,
+            embed=embed,
+            view=DinoFeedView(self.server)
+        )
+
+
+
 class ServerButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -398,6 +441,7 @@ class DinoFeedMenuButton(discord.ui.Button):
 
 
 
+
 class DinoFeedView(discord.ui.View):
     def __init__(self, server):
         super().__init__(timeout=None)
@@ -415,6 +459,11 @@ class DinoFeedView(discord.ui.View):
         self.add_item(
             DeleteDinoFeedButton(server)
         )
+
+        self.add_item(
+            RefreshDinoFeedButton(server)
+        )
+
 
 
 
