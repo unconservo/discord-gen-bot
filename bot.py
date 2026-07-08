@@ -2422,7 +2422,7 @@ class MainView(discord.ui.View):
 
 
 
-@bot.tree.command(name="gen_dashboard")
+@bot.tree.command(name="oao_dashboard")
 async def gen_dashboard(interaction):
 
     await interaction.response.defer()
