@@ -668,6 +668,21 @@ class SpamMenuButton(discord.ui.Button):
 
 
 
+class RefreshSpamButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="🔄 Refresh",
+            style=discord.ButtonStyle.secondary
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await SpamMenuButton(
+            self.server
+        ).callback(interaction)
+
 
 
 
