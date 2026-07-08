@@ -2430,7 +2430,7 @@ async def gen_dashboard(interaction):
     dashboard_message = None
 
     await interaction.followup.send(
-        "🌍 Select Server",
+        "🛰 OAO Control Center\n\n🌍 Select Server",
         view=ServerSelectionView()
     )
 
@@ -2441,12 +2441,25 @@ async def gen_dashboard(interaction):
 # READY
 # ========================
 
+
 @bot.event
 async def on_ready():
     await bot.tree.sync()
-    check_alerts.start()
-    auto_refresh.start()
+
+    await bot.change_presence(
+        activity=discord.Game(
+            name="OAO Control Center"
+        )
+    )
+
+    if not check_alerts.is_running():
+        check_alerts.start()
+
+    if not auto_refresh.is_running():
+        auto_refresh.start()
+
     print(f"✅ Logged in as {bot.user}")
+
 
 import time
 
