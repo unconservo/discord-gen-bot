@@ -118,34 +118,10 @@ async def log_action(user, action, name, server, value=None):
 # ========================
 # REFRESH DASHBOARD
 # ========================
+
 async def refresh_dashboard():
-    global dashboard_message
+    return
 
-    if not dashboard_message:
-        return
-
-    data = await api_get(API_GET)
-
-    try:
-        
-        await dashboard_message.edit(
-            embed=build_embed(
-                data,
-                0,
-                None,
-                None
-            ),
-            view=MainView(
-                data,
-                0,
-                "dashboard",
-                None,
-                None
-            )
-        )
-
-    except Exception as e:
-        print("Dashboard update failed:", e)
 
 # ========================
 # Jump SYSTEM ✅ UPDATED
