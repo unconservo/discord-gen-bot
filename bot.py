@@ -30,6 +30,8 @@ API_DINO_FEED = "https://www.t-doc.co.za/discord/dino_feed.php"
 API_ADD_DINO_FEED = "https://www.t-doc.co.za/discord/add_dino_feed.php"
 API_UPDATE_DINO_FEED = "https://www.t-doc.co.za/discord/update_dino_feed.php"
 API_DELETE_DINO_FEED = "https://www.t-doc.co.za/discord/delete_dino_feed.php"
+API_SPAM_ZONES = "https://www.t-doc.co.za/discord/spam_zones.php"
+API_ADD_SPAM_ZONE = "https://www.t-doc.co.za/discord/add_spam_zone.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
@@ -204,6 +206,8 @@ class JumpButton(discord.ui.Button):
         )
 
 # NEW CLASSES FOR NEW DASHBOARD FOR GENERATORS / SPAM / DINO FEED 
+
+
 
 
 class DeleteDinoFeedSelectView(discord.ui.View):
@@ -489,6 +493,22 @@ class AddDinoFeedButton(discord.ui.Button):
 
 
 
+class AddZoneButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="➕ Add Zone",
+            style=discord.ButtonStyle.success
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.send_modal(
+            AddZoneModal(self.server)
+        )
+
+
 
 class SpamMenuButton(discord.ui.Button):
     def __init__(self, server):
@@ -501,10 +521,79 @@ class SpamMenuButton(discord.ui.Button):
 
     async def callback(self, interaction):
 
-        await interaction.response.send_message(
-            f"🏗 Spam for Server {self.server}\n\nComing next phase.",
-            ephemeral=True
+        await interaction.response.defer()
+
+        data = await api_get(
+            API_SPAM_ZONES,
+            {
+                "server": self.server
+            }
         )
+
+        embed = discord.Embed(
+            title=f"🏗 Spam - Server {self.server}",
+            color=0xff9900
+        )
+
+        if not data:
+            embed.description = "No spam zones configured."
+        else:
+            for row in data[:25]:
+                embed.add_field(
+                    name=row["zone_name"],
+                    value=row["description"] or "No Description",
+                    inline=False
+                )
+
+        await interaction.edit_original_response(
+            content=None,
+            embed=embed,
+            view=SpamView(self.server)
+        )
+
+
+class SpamView(discord.ui.View):
+    def __init__(self, server):
+        super().__init__(timeout=None)
+
+        self.server = server
+
+        self.add_item(
+            AddZoneButton(server)
+        )
+
+
+<?php
+include 'db.php';
+
+if ($_GET['key'] != 'SUPER_SECRET_KEY') {
+    die();
+}
+
+$server = $_GET['server'];
+
+$zone_name = mysqli_real_escape_string(
+    $conn,
+    $_GET['zone_name']
+);
+
+$description = mysqli_real_escape_string(
+    $conn,
+    $_GET['description']
+);
+
+$conn->query("
+INSERT INTO spam_zones
+(server, zone_name, description)
+VALUES
+('$server', '$zone_name', '$description')
+");
+
+echo json_encode([
+    'ok' => true
+]);
+?>
+
 
 
 class ServerMenuView(discord.ui.View):
@@ -845,6 +934,44 @@ class NextButton(discord.ui.Button):
 # MODALS
 # ========================
 
+
+class AddZoneModal(
+    discord.ui.Modal,
+    title="Add Spam Zone"
+):
+    zone_name = discord.ui.TextInput(
+        label="Zone Name"
+    )
+
+    description = discord.ui.TextInput(
+        label="Description",
+        style=discord.TextStyle.paragraph,
+        required=False
+    )
+
+    def __init__(self, server):
+        super().__init__()
+        self.server = server
+
+    async def on_submit(self, interaction):
+
+        await interaction.response.defer(
+            ephemeral=True
+        )
+
+        await api_get(
+            API_ADD_SPAM_ZONE,
+            {
+                "server": self.server,
+                "zone_name": self.zone_name.value,
+                "description": self.description.value
+            }
+        )
+
+        await interaction.followup.send(
+            "✅ Zone Added",
+            ephemeral=True
+        )
 
 
 class EditDinoFeedSelectView(discord.ui.View):
