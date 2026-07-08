@@ -33,6 +33,7 @@ API_DELETE_DINO_FEED = "https://www.t-doc.co.za/discord/delete_dino_feed.php"
 API_SPAM_ZONES = "https://www.t-doc.co.za/discord/spam_zones.php"
 API_DELETE_SPAM_ZONE = "https://www.t-doc.co.za/discord/delete_spam_zone.php"
 API_ADD_SPAM_ZONE = "https://www.t-doc.co.za/discord/add_spam_zone.php"
+API_UPDATE_SPAM_ZONE = "https://www.t-doc.co.za/discord/update_spam_zone.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
@@ -639,6 +640,7 @@ class SpamMenuButton(discord.ui.Button):
 
 
 
+
 class SpamView(discord.ui.View):
     def __init__(self, server):
         super().__init__(timeout=None)
@@ -650,8 +652,13 @@ class SpamView(discord.ui.View):
         )
 
         self.add_item(
+            EditZoneButton(server)
+        )
+
+        self.add_item(
             DeleteZoneButton(server)
         )
+
 
 
 
@@ -989,12 +996,91 @@ class NextButton(discord.ui.Button):
         )
 
 
+class EditZoneButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="✏️ Edit Zone",
+            style=discord.ButtonStyle.primary
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        data = await api_get(
+            API_SPAM_ZONES,
+            {
+                "server": self.server
+            }
+        )
+
+        if not data:
+            return await interaction.response.send_message(
+                "❌ No zones found",
+                ephemeral=True
+            )
+
+        await interaction.response.send_message(
+            "Select zone to edit",
+            view=EditZoneSelectView(data),
+            ephemeral=True
+        )
+
+
+class EditZoneSelect(discord.ui.Select):
+    def __init__(self, data):
+
+        self.records = data
+
+        options = []
+
+        for row in data[:25]:
+            options.append(
+                discord.SelectOption(
+                    label=row["zone_name"][:100],
+                    value=str(row["id"])
+                )
+            )
+
+        super().__init__(
+            placeholder="Select zone to edit...",
+            options=options
+        )
+
+    async def callback(self, interaction):
+
+        zone_id = int(self.values[0])
+
+        row = next(
+            r for r in self.records
+            if int(r["id"]) == zone_id
+        )
+
+        await interaction.response.send_modal(
+            EditZoneModal(
+                zone_id,
+                row["zone_name"],
+                row["description"]
+            )
+        )
+
+
+class EditZoneSelectView(discord.ui.View):
+    def __init__(self, data):
+        super().__init__(timeout=120)
+
+        self.add_item(
+            EditZoneSelect(data)
+        )
+
+
 
 
 
 # ========================
 # MODALS
 # ========================
+
 
 class EditZoneModal(
     discord.ui.Modal,
@@ -1009,6 +1095,40 @@ class EditZoneModal(
         style=discord.TextStyle.paragraph,
         required=False
     )
+
+    def __init__(
+        self,
+        zone_id,
+        current_name,
+        current_description
+    ):
+        super().__init__()
+
+        self.zone_id = zone_id
+
+        self.zone_name.default = current_name
+        self.description.default = current_description or ""
+
+    async def on_submit(self, interaction):
+
+        await interaction.response.defer(
+            ephemeral=True
+        )
+
+        await api_get(
+            API_UPDATE_SPAM_ZONE,
+            {
+                "id": self.zone_id,
+                "zone_name": self.zone_name.value,
+                "description": self.description.value
+            }
+        )
+
+        await interaction.followup.send(
+            "✅ Zone Updated",
+            ephemeral=True
+        )
+
 
 
 class AddZoneModal(
