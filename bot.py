@@ -1103,9 +1103,32 @@ def build_embed(
         (len(data) - 1) // PER_PAGE + 1
     )
 
+   
+    critical_count = len([
+        g for g in data
+        if float(g["days"]) <= 5
+    ])
+
+    low_count = len([
+        g for g in data
+        if 5 < float(g["days"]) <= 10
+    ])
+
+    healthy_count = len([
+        g for g in data
+        if float(g["days"]) > 10
+    ])
+
     embed.set_footer(
-        text=f"Page {page+1}/{total_pages}"
+        text=(
+            f"Page {page+1}/{total_pages} • "
+            f"Total: {len(data)} • "
+            f"🚨 Critical: {critical_count} • "
+            f"⚠️ Low: {low_count} • "
+            f"✅ Healthy: {healthy_count}"
+        )
     )
+
 
     return embed
 
