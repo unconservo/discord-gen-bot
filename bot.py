@@ -1635,8 +1635,13 @@ class MainView(discord.ui.View):
 # ========================
 
 
+
+
 @bot.tree.command(name="gen_dashboard")
 async def gen_dashboard(interaction):
+
+    global dashboard_message
+    dashboard_message = None
 
     await interaction.response.send_message(
         "🌍 Select Server",
@@ -1644,18 +1649,6 @@ async def gen_dashboard(interaction):
         ephemeral=False
     )
 
-
-    global dashboard_message
-
-    data = await api_get(API_GET)
-    ch = bot.get_channel(GEN_CHANNEL_ID)
-
-    dashboard_message = await ch.send(
-        embed=build_embed(data, 0, None),
-        view=MainView(data, 0)
-    )
-
-    await interaction.followup.send("✅ Dashboard ready", ephemeral=True)
 
 
 # ========================
