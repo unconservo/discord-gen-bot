@@ -36,6 +36,7 @@ API_ADD_SPAM_ZONE = "https://www.t-doc.co.za/discord/add_spam_zone.php"
 API_UPDATE_SPAM_ZONE = "https://www.t-doc.co.za/discord/update_spam_zone.php"
 API_SPAM_MAP = "https://www.t-doc.co.za/discord/get_spam_map.php"
 API_UPDATE_SPAM_MAP = "https://www.t-doc.co.za/discord/update_spam_map.php"
+API_SPAM_MAP = "https://www.t-doc.co.za/discord/get_spam_map.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
@@ -600,6 +601,7 @@ class AddZoneButton(discord.ui.Button):
 
 
 
+
 class SpamMenuButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -632,27 +634,21 @@ class SpamMenuButton(discord.ui.Button):
             color=0xff9900
         )
 
-        # Show server map if one exists
-        
         print("MAP =", map_data)
 
         if map_data and map_data.get("image_url"):
 
             print("IMAGE URL =", map_data["image_url"])
 
-            
-           
-         
-          embed.description = (
-              f"Map URL:\n{map_data['image_url']}"
-          )
+            embed.set_image(
+                url=map_data["image_url"]
+            )
 
-          embed.set_image(
-              url=map_data["image_url"]
-
-
-       )
-
+            embed.add_field(
+                name="🗺 Server Map URL",
+                value=map_data["image_url"],
+                inline=False
+            )
 
         if not data:
             embed.description = "No spam zones configured."
