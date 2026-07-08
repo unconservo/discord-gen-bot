@@ -563,36 +563,6 @@ class SpamView(discord.ui.View):
         )
 
 
-<?php
-include 'db.php';
-
-if ($_GET['key'] != 'SUPER_SECRET_KEY') {
-    die();
-}
-
-$server = $_GET['server'];
-
-$zone_name = mysqli_real_escape_string(
-    $conn,
-    $_GET['zone_name']
-);
-
-$description = mysqli_real_escape_string(
-    $conn,
-    $_GET['description']
-);
-
-$conn->query("
-INSERT INTO spam_zones
-(server, zone_name, description)
-VALUES
-('$server', '$zone_name', '$description')
-");
-
-echo json_encode([
-    'ok' => true
-]);
-?>
 
 
 
