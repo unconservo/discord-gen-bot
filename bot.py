@@ -31,6 +31,7 @@ API_ADD_DINO_FEED = "https://www.t-doc.co.za/discord/add_dino_feed.php"
 API_UPDATE_DINO_FEED = "https://www.t-doc.co.za/discord/update_dino_feed.php"
 API_DELETE_DINO_FEED = "https://www.t-doc.co.za/discord/delete_dino_feed.php"
 API_SPAM_ZONES = "https://www.t-doc.co.za/discord/spam_zones.php"
+API_DELETE_SPAM_ZONE = "https://www.t-doc.co.za/discord/delete_spam_zone.php"
 API_ADD_SPAM_ZONE = "https://www.t-doc.co.za/discord/add_spam_zone.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
@@ -134,6 +135,101 @@ async def refresh_dashboard():
 # ========================
 
 
+class SpamView(discord.ui.View):
+    def __init__(self, server):
+        super().__init__(timeout=None)
+
+        self.server = server
+
+        self.add_item(
+            AddZoneButton(server)
+        )
+
+        self.add_item(
+            DeleteZoneButton(server)
+        )
+
+
+class DeleteZoneSelectView(discord.ui.View):
+    def __init__(self, data):
+        super().__init__(timeout=120)
+
+        self.add_item(
+            DeleteZoneSelect(data)
+        )
+
+
+class DeleteZoneSelect(discord.ui.Select):
+    def __init__(self, data):
+
+        self.records = data
+
+        options = []
+
+        for row in data[:25]:
+            options.append(
+                discord.SelectOption(
+                    label=row["zone_name"][:100],
+                    value=str(row["id"])
+                )
+            )
+
+        super().__init__(
+            placeholder="Select zone to delete...",
+            options=options
+        )
+
+    async def callback(self, interaction):
+
+        zone_id = int(self.values[0])
+
+        row = next(
+            r for r in self.records
+            if int(r["id"]) == zone_id
+        )
+
+        await api_get(
+            API_DELETE_SPAM_ZONE,
+            {
+                "id": zone_id
+            }
+        )
+
+        await interaction.response.send_message(
+            f"✅ Deleted Zone: {row['zone_name']}",
+            ephemeral=True
+        )
+
+
+class DeleteZoneButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="🗑 Delete Zone",
+            style=discord.ButtonStyle.danger
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        data = await api_get(
+            API_SPAM_ZONES,
+            {
+                "server": self.server
+            }
+        )
+
+        if not data:
+            return await interaction.response.send_message(
+                "❌ No zones found",
+                ephemeral=True
+            )
+
+        await interaction.response.send_message(
+            "Select zone to delete",
+            view=DeleteZoneSelectView(data),
+            ephemeral=True
+        )
 
 
 
