@@ -643,7 +643,7 @@ class SpamMenuButton(discord.ui.Button):
             
             embed.set_thumbnail(
                 url=map_data["image_url"]
-            )
+            
 
         )
 
