@@ -498,6 +498,7 @@ class RefreshDinoFeedButton(discord.ui.Button):
 
 
 
+
 class ServerButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -525,20 +526,25 @@ class ServerButton(discord.ui.Button):
 
         embed.add_field(
             name="⚡ Generators",
-            value=str(summary.get("generators", 0)),
-            inline=True
+            value=(
+                f"Total: {summary.get('generators', 0)}\n"
+                f"🚨 Critical: {summary.get('critical', 0)}\n"
+                f"⚠️ Low: {summary.get('low', 0)}\n"
+                f"✅ Healthy: {summary.get('healthy', 0)}"
+            ),
+            inline=False
         )
 
         embed.add_field(
-            name="🦖 Dino Feed TPs",
-            value=str(summary.get("dino_feed", 0)),
-            inline=True
+            name="🦖 Dino Feed",
+            value=f"TP Locations: {summary.get('dino_feed', 0)}",
+            inline=False
         )
 
         embed.add_field(
-            name="🏗 Spam Zones",
-            value=str(summary.get("spam_zones", 0)),
-            inline=True
+            name="🏗 Spam",
+            value=f"Zones: {summary.get('spam_zones', 0)}",
+            inline=False
         )
 
         await interaction.edit_original_response(
