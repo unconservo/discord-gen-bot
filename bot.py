@@ -37,6 +37,7 @@ API_UPDATE_SPAM_ZONE = "https://www.t-doc.co.za/discord/update_spam_zone.php"
 API_SPAM_MAP = "https://www.t-doc.co.za/discord/get_spam_map.php"
 API_UPDATE_SPAM_MAP = "https://www.t-doc.co.za/discord/update_spam_map.php"
 API_SPAM_MAP = "https://www.t-doc.co.za/discord/get_spam_map.php"
+API_SERVER_SUMMARY = "https://www.t-doc.co.za/discord/server_summary.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
@@ -173,26 +174,47 @@ class DeleteZoneSelect(discord.ui.Select):
             options=options
         )
 
+    
     async def callback(self, interaction):
 
-        zone_id = int(self.values[0])
+        await interaction.response.defer()
 
-        row = next(
-            r for r in self.records
-            if int(r["id"]) == zone_id
-        )
-
-        await api_get(
-            API_DELETE_SPAM_ZONE,
+        summary = await api_get(
+            API_SERVER_SUMMARY,
             {
-                "id": zone_id
+                "server": self.server
             }
         )
 
-        await interaction.response.send_message(
-            f"✅ Deleted Zone: {row['zone_name']}",
-            ephemeral=True
+        embed = discord.Embed(
+            title=f"📊 Server {self.server} Status",
+            color=0x00ff99
         )
+
+        embed.add_field(
+            name="⚡ Generators",
+            value=str(summary.get("generators", 0)),
+            inline=True
+        )
+
+        embed.add_field(
+            name="🦖 Dino Feed TPs",
+            value=str(summary.get("dino_feed", 0)),
+            inline=True
+        )
+
+        embed.add_field(
+            name="🏗 Spam Zones",
+            value=str(summary.get("spam_zones", 0)),
+            inline=True
+        )
+
+        await interaction.edit_original_response(
+            content=None,
+            embed=embed,
+            view=ServerMenuView(self.server)
+        )
+
 
 
 class DeleteZoneButton(discord.ui.Button):
@@ -842,9 +864,12 @@ class SpamView(discord.ui.View):
 
 
 
+
 class ServerMenuView(discord.ui.View):
     def __init__(self, server):
         super().__init__(timeout=None)
+
+        self.server = server
 
         self.add_item(
             GeneratorsMenuButton(server)
@@ -857,6 +882,27 @@ class ServerMenuView(discord.ui.View):
         self.add_item(
             SpamMenuButton(server)
         )
+
+        self.add_item(
+            HomeButton()
+        )
+
+
+class HomeButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="🏠 Home",
+            style=discord.ButtonStyle.secondary
+        )
+
+    async def callback(self, interaction):
+
+        await interaction.response.edit_message(
+            content="🛰 OAO Control Center\n\n🌍 Select Server",
+            embed=None,
+            view=ServerSelectionView()
+        )
+
 
 
 
