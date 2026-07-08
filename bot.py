@@ -645,7 +645,7 @@ class SpamMenuButton(discord.ui.Button):
                 url=map_data["image_url"]
             )
 
-            )
+        )
 
 
         if not data:
