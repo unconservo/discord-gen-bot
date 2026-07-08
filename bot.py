@@ -304,7 +304,7 @@ class JumpButton(discord.ui.Button):
 class GeneratorBackButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
-            label="⬅ Back",
+            label="⬅ Server Home",
             style=discord.ButtonStyle.secondary,
             row=4
         )
@@ -325,7 +325,7 @@ class GeneratorBackButton(discord.ui.Button):
 class BackButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
-            label="⬅ Back",
+            label="⬅ Server Home",
             style=discord.ButtonStyle.secondary
         )
 
