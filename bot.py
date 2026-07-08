@@ -904,6 +904,20 @@ class NextButton(discord.ui.Button):
 # MODALS
 # ========================
 
+class EditZoneModal(
+    discord.ui.Modal,
+    title="Edit Spam Zone"
+):
+    zone_name = discord.ui.TextInput(
+        label="Zone Name"
+    )
+
+    description = discord.ui.TextInput(
+        label="Spam Description",
+        style=discord.TextStyle.paragraph,
+        required=False
+    )
+
 
 class AddZoneModal(
     discord.ui.Modal,
@@ -914,7 +928,7 @@ class AddZoneModal(
     )
 
     description = discord.ui.TextInput(
-        label="Description",
+        label="Spam Description",
         style=discord.TextStyle.paragraph,
         required=False
     )
