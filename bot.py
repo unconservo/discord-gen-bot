@@ -313,6 +313,7 @@ class DinoFeedMenuButton(discord.ui.Button):
 
 
 
+
 class DinoFeedView(discord.ui.View):
     def __init__(self, server):
         super().__init__(timeout=None)
@@ -327,9 +328,6 @@ class DinoFeedView(discord.ui.View):
             EditDinoFeedButton(server)
         )
 
-        self.add_item(
-            DeleteDinoFeedButton(server)
-        )
 
 
 
