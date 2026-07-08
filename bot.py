@@ -135,6 +135,7 @@ async def refresh_dashboard():
 # ========================
 
 
+
 class SpamView(discord.ui.View):
     def __init__(self, server):
         super().__init__(timeout=None)
@@ -148,6 +149,7 @@ class SpamView(discord.ui.View):
         self.add_item(
             DeleteZoneButton(server)
         )
+
 
 
 class DeleteZoneSelectView(discord.ui.View):
