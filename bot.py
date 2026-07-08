@@ -2421,6 +2421,7 @@ class MainView(discord.ui.View):
 
 
 
+
 @bot.tree.command(name="gen_dashboard")
 async def gen_dashboard(interaction):
 
@@ -2433,6 +2434,7 @@ async def gen_dashboard(interaction):
         "🛰 OAO Control Center\n\n🌍 Select Server",
         view=ServerSelectionView()
     )
+
 
 
 
