@@ -27,6 +27,7 @@ API_RESTORE = "https://www.t-doc.co.za/discord/restore.php"
 API_TRASH = "https://www.t-doc.co.za/discord/trash.php"
 API_CLEAR_ALL = "https://www.t-doc.co.za/discord/clear_all.php"
 API_DINO_FEED = "https://www.t-doc.co.za/discord/dino_feed.php"
+API_ADD_DINO_FEED = "https://www.t-doc.co.za/discord/add_dino_feed.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
@@ -313,6 +314,7 @@ class DinoFeedView(discord.ui.View):
         )
 
 
+
 class AddDinoFeedButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -324,10 +326,12 @@ class AddDinoFeedButton(discord.ui.Button):
 
     async def callback(self, interaction):
 
-        await interaction.response.send_message(
-            "✅ Dino Feed Add coming next step.",
-            ephemeral=True
+        await interaction.response.send_modal(
+            AddDinoFeedModal(
+                self.server
+            )
         )
+
 
 
 
@@ -687,6 +691,39 @@ class NextButton(discord.ui.Button):
 # ========================
 
 
+
+class AddDinoFeedModal(
+    discord.ui.Modal,
+    title="Add Dino Feed TP"
+):
+    tp_name = discord.ui.TextInput(
+        label="TP Name",
+        required=True,
+        max_length=255
+    )
+
+    def __init__(self, server):
+        super().__init__()
+        self.server = server
+
+    async def on_submit(self, interaction):
+
+        await interaction.response.defer(
+            ephemeral=True
+        )
+
+        await api_get(
+            API_ADD_DINO_FEED,
+            {
+                "server": self.server,
+                "tp_name": self.tp_name.value
+            }
+        )
+
+        await interaction.followup.send(
+            "✅ TP Added",
+            ephemeral=True
+        )
 
 
 
