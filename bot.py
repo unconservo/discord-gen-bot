@@ -1727,17 +1727,20 @@ class MainView(discord.ui.View):
 
 
 
+
 @bot.tree.command(name="gen_dashboard")
 async def gen_dashboard(interaction):
+
+    await interaction.response.defer()
 
     global dashboard_message
     dashboard_message = None
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         "🌍 Select Server",
-        view=ServerSelectionView(),
-        ephemeral=False
+        view=ServerSelectionView()
     )
+
 
 
 
