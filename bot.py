@@ -642,8 +642,15 @@ class SpamMenuButton(discord.ui.Button):
 
             
            
-            embed.set_image(
-            url="https://www.t-doc.co.za/discord/imagetest.php"
+         
+          embed.description = (
+              f"Map URL:\n{map_data['image_url']}"
+          )
+
+          embed.set_image(
+              url=map_data["image_url"]
+
+
        )
 
 
