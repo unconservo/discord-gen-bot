@@ -78,7 +78,7 @@ async def api_get(url, params=None):
     params = params or {}
     params["key"] = API_KEY
 
-    timeout = aiohttp.ClientTimeout(total=5)  # ✅ 5 second max
+    timeout = aiohttp.ClientTimeout(total=15)  # ✅ 5 second max
 
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -235,6 +235,7 @@ class ServerSelectionView(discord.ui.View):
             )
 
 
+
 class GeneratorsMenuButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -246,9 +247,11 @@ class GeneratorsMenuButton(discord.ui.Button):
 
     async def callback(self, interaction):
 
+        await interaction.response.defer()
+
         data = await api_get(API_GET)
 
-        await interaction.response.edit_message(
+        await interaction.edit_original_response(
             content=None,
             embed=build_embed(
                 data,
@@ -265,6 +268,8 @@ class GeneratorsMenuButton(discord.ui.Button):
 
 
 
+
+
 class DinoFeedMenuButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -275,6 +280,8 @@ class DinoFeedMenuButton(discord.ui.Button):
         self.server = server
 
     async def callback(self, interaction):
+
+        await interaction.response.defer()
 
         data = await api_get(
             API_DINO_FEED,
@@ -298,11 +305,12 @@ class DinoFeedMenuButton(discord.ui.Button):
                     inline=False
                 )
 
-        await interaction.response.edit_message(
+        await interaction.edit_original_response(
             content=None,
             embed=embed,
             view=DinoFeedView(self.server)
         )
+
 
 
 class DinoFeedView(discord.ui.View):
