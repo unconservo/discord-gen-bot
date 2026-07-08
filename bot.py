@@ -633,14 +633,17 @@ class SpamMenuButton(discord.ui.Button):
         )
 
         # Show server map if one exists
-        if (
-            map_data
-            and isinstance(map_data, dict)
-            and map_data.get("image_url")
-        ):
+        
+        print("MAP =", map_data)
+
+        if map_data and map_data.get("image_url"):
+
+            print("IMAGE URL =", map_data["image_url"])
+
             embed.set_image(
                 url=map_data["image_url"]
             )
+
 
         if not data:
             embed.description = "No spam zones configured."
