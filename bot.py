@@ -28,6 +28,7 @@ API_TRASH = "https://www.t-doc.co.za/discord/trash.php"
 API_CLEAR_ALL = "https://www.t-doc.co.za/discord/clear_all.php"
 API_DINO_FEED = "https://www.t-doc.co.za/discord/dino_feed.php"
 API_ADD_DINO_FEED = "https://www.t-doc.co.za/discord/add_dino_feed.php"
+API_UPDATE_DINO_FEED = "https://www.t-doc.co.za/discord/update_dino_feed.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
@@ -309,9 +310,15 @@ class DinoFeedView(discord.ui.View):
 
         self.server = server
 
+        
         self.add_item(
             AddDinoFeedButton(server)
         )
+
+        self.add_item(
+            EditDinoFeedButton(server)
+        )
+
 
 
 
@@ -690,6 +697,120 @@ class NextButton(discord.ui.Button):
 # MODALS
 # ========================
 
+
+
+class EditDinoFeedSelectView(discord.ui.View):
+    def __init__(self, data):
+        super().__init__(timeout=120)
+
+        self.add_item(
+            EditDinoFeedSelect(data)
+        )
+
+
+class EditDinoFeedSelect(discord.ui.Select):
+    def __init__(self, data):
+
+        self.records = data
+
+        options = []
+
+        for row in data[:25]:
+            options.append(
+                discord.SelectOption(
+                    label=row["tp_name"][:100],
+                    value=str(row["id"])
+                )
+            )
+
+        super().__init__(
+            placeholder="Select TP...",
+            options=options
+        )
+
+    async def callback(self, interaction):
+
+        tp_id = int(self.values[0])
+
+        row = next(
+            r for r in self.records
+            if int(r["id"]) == tp_id
+        )
+
+        await interaction.response.send_modal(
+            EditDinoFeedModal(
+                tp_id,
+                row["tp_name"]
+            )
+        )
+
+
+class EditDinoFeedButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="✏️ Edit TP",
+            style=discord.ButtonStyle.primary
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        data = await api_get(
+            API_DINO_FEED,
+            {
+                "server": self.server
+            }
+        )
+
+        if not data:
+            return await interaction.response.send_message(
+                "❌ No TP records found",
+                ephemeral=True
+            )
+
+        await interaction.response.send_message(
+            "Select TP to edit",
+            view=EditDinoFeedSelectView(data),
+            ephemeral=True
+        )
+
+
+class EditDinoFeedModal(
+    discord.ui.Modal,
+    title="Edit Dino Feed TP"
+):
+    tp_name = discord.ui.TextInput(
+        label="TP Name",
+        required=True,
+        max_length=255
+    )
+
+    def __init__(self, tp_id, current_name):
+        super().__init__()
+
+        self.tp_id = tp_id
+
+        self.tp_name.default = current_name
+
+    async def on_submit(self, interaction):
+
+        await interaction.response.defer(
+            ephemeral=True
+        )
+
+        await api_get(
+            API_UPDATE_DINO_FEED,
+            {
+                "id": self.tp_id,
+                "tp_name": self.tp_name.value
+            }
+        )
+
+        await interaction.followup.send(
+            "✅ TP Updated",
+            ephemeral=True
+        )
 
 
 class AddDinoFeedModal(
