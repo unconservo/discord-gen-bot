@@ -48,6 +48,11 @@ SERVER_ROLES = {
 }
 
 
+SERVERS = [
+    "2491"
+]
+
+
 
 
 
@@ -218,6 +223,117 @@ class JumpButton(discord.ui.Button):
             ephemeral=True
         )
 
+# NEW CLASSES FOR NEW DASHBOARD FOR GENERATORS / SPAM / DINO FEED 
+
+
+class ServerButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label=server,
+            style=discord.ButtonStyle.primary
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.edit_message(
+            content=f"🌍 Server {self.server}",
+            view=ServerMenuView(
+                self.server
+            ),
+            embed=None
+        )
+
+
+class ServerSelectionView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+        for server in SERVERS:
+            self.add_item(
+                ServerButton(server)
+            )
+
+
+class GeneratorsMenuButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="⚡ Generators",
+            style=discord.ButtonStyle.success
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        data = await api_get(API_GET)
+
+        await interaction.response.edit_message(
+            content=None,
+            embed=build_embed(
+                data,
+                0,
+                self.server
+            ),
+            view=MainView(
+                data,
+                0,
+                "dashboard",
+                self.server
+            )
+        )
+
+
+class DinoFeedMenuButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="🦖 Dino Feed",
+            style=discord.ButtonStyle.primary
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.send_message(
+            f"🦖 Dino Feed for Server {self.server}\n\nComing next phase.",
+            ephemeral=True
+        )
+
+
+class SpamMenuButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="🏗 Spam",
+            style=discord.ButtonStyle.secondary
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.send_message(
+            f"🏗 Spam for Server {self.server}\n\nComing next phase.",
+            ephemeral=True
+        )
+
+
+class ServerMenuView(discord.ui.View):
+    def __init__(self, server):
+        super().__init__(timeout=None)
+
+        self.add_item(
+            GeneratorsMenuButton(server)
+        )
+
+        self.add_item(
+            DinoFeedMenuButton(server)
+        )
+
+        self.add_item(
+            SpamMenuButton(server)
+        )
 
 
 
@@ -1542,9 +1658,16 @@ class MainView(discord.ui.View):
 # COMMAND
 # ========================
 
+
 @bot.tree.command(name="gen_dashboard")
 async def gen_dashboard(interaction):
-    await interaction.response.defer(ephemeral=True)
+
+    await interaction.response.send_message(
+        "🌍 Select Server",
+        view=ServerSelectionView(),
+        ephemeral=False
+    )
+
 
     global dashboard_message
 
