@@ -475,12 +475,12 @@ class RefreshDinoFeedButton(discord.ui.Button):
         )
 
         embed = discord.Embed(
-            title=f"🦖 Dino Feed - Server {self.server}",
+            title=f"🦖 Defense Dino Feed TPs- Server {self.server}",
             color=0x00ff99
         )
 
         if not data:
-            embed.description = "No Dino Feed TPs configured."
+            embed.description = "No Defense Dino Feed TPs configured."
         else:
             for row in data[:25]:
                 embed.add_field(
@@ -536,7 +536,7 @@ class ServerButton(discord.ui.Button):
         )
 
         embed.add_field(
-            name="🦖 Dino Feed",
+            name="🦖 Defense Dino Feed TPs",
             value=f"TP Locations: {summary.get('dino_feed', 0)}",
             inline=False
         )
@@ -603,7 +603,7 @@ class GeneratorsMenuButton(discord.ui.Button):
 class DinoFeedMenuButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
-            label="🦖 Dino Feed",
+            label="🦖 Defense Dino Feed TPs",
             style=discord.ButtonStyle.primary
         )
 
@@ -621,12 +621,12 @@ class DinoFeedMenuButton(discord.ui.Button):
         )
 
         embed = discord.Embed(
-            title=f"🦖 Dino Feed - Server {self.server}",
+            title=f"🦖 Defense Dino Feed TPs - Server {self.server}",
             color=0x00ff99
         )
 
         if not data:
-            embed.description = "No Dino Feed TPs configured."
+            embed.description = "No Defense Dino Feed TPs configured."
         else:
             for row in data[:25]:
                 embed.add_field(
@@ -1563,7 +1563,7 @@ class EditDinoFeedButton(discord.ui.Button):
 
 class EditDinoFeedModal(
     discord.ui.Modal,
-    title="Edit Dino Feed TP"
+    title="Edit Defense Dino Feed TP"
 ):
     tp_name = discord.ui.TextInput(
         label="TP Name",
@@ -1600,7 +1600,7 @@ class EditDinoFeedModal(
 
 class AddDinoFeedModal(
     discord.ui.Modal,
-    title="Add Dino Feed TP"
+    title="Add Defense Dino Feed TP"
 ):
     tp_name = discord.ui.TextInput(
         label="TP Name",
