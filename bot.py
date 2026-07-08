@@ -174,45 +174,25 @@ class DeleteZoneSelect(discord.ui.Select):
             options=options
         )
 
-    
     async def callback(self, interaction):
 
-        await interaction.response.defer()
+        zone_id = int(self.values[0])
 
-        summary = await api_get(
-            API_SERVER_SUMMARY,
+        row = next(
+            r for r in self.records
+            if int(r["id"]) == zone_id
+        )
+
+        await api_get(
+            API_DELETE_SPAM_ZONE,
             {
-                "server": self.server
+                "id": zone_id
             }
         )
 
-        embed = discord.Embed(
-            title=f"📊 Server {self.server} Status",
-            color=0x00ff99
-        )
-
-        embed.add_field(
-            name="⚡ Generators",
-            value=str(summary.get("generators", 0)),
-            inline=True
-        )
-
-        embed.add_field(
-            name="🦖 Dino Feed TPs",
-            value=str(summary.get("dino_feed", 0)),
-            inline=True
-        )
-
-        embed.add_field(
-            name="🏗 Spam Zones",
-            value=str(summary.get("spam_zones", 0)),
-            inline=True
-        )
-
-        await interaction.edit_original_response(
-            content=None,
-            embed=embed,
-            view=ServerMenuView(self.server)
+        await interaction.response.send_message(
+            f"✅ Deleted Zone: {row['zone_name']}",
+            ephemeral=True
         )
 
 
@@ -517,6 +497,7 @@ class RefreshDinoFeedButton(discord.ui.Button):
 
 
 
+
 class ServerButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -528,13 +509,44 @@ class ServerButton(discord.ui.Button):
 
     async def callback(self, interaction):
 
-        await interaction.response.edit_message(
-            content=f"🌍 Server {self.server}",
-            view=ServerMenuView(
-                self.server
-            ),
-            embed=None
+        await interaction.response.defer()
+
+        summary = await api_get(
+            API_SERVER_SUMMARY,
+            {
+                "server": self.server
+            }
         )
+
+        embed = discord.Embed(
+            title=f"📊 Server {self.server} Status",
+            color=0x00ff99
+        )
+
+        embed.add_field(
+            name="⚡ Generators",
+            value=str(summary.get("generators", 0)),
+            inline=True
+        )
+
+        embed.add_field(
+            name="🦖 Dino Feed TPs",
+            value=str(summary.get("dino_feed", 0)),
+            inline=True
+        )
+
+        embed.add_field(
+            name="🏗 Spam Zones",
+            value=str(summary.get("spam_zones", 0)),
+            inline=True
+        )
+
+        await interaction.edit_original_response(
+            content=None,
+            embed=embed,
+            view=ServerMenuView(self.server)
+        )
+
 
 
 class ServerSelectionView(discord.ui.View):
