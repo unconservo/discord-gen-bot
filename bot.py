@@ -2422,7 +2422,7 @@ class MainView(discord.ui.View):
             self.add_item(SearchInputButton())
             self.add_item(CriticalButton())
             self.add_item(ShowAllButton())
-
+            self.add_item(BackButton(self.server_filter))
         # =========================
         # TOOLS TAB
         # =========================
@@ -2434,7 +2434,7 @@ class MainView(discord.ui.View):
             self.add_item(CSVButton())
             self.add_item(ResetAlertsButton())
             self.add_item(HelpButton())
-
+            self.add_item(BackButton(self.server_filter))
 
 
 # ========================
