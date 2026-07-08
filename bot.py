@@ -34,6 +34,8 @@ API_SPAM_ZONES = "https://www.t-doc.co.za/discord/spam_zones.php"
 API_DELETE_SPAM_ZONE = "https://www.t-doc.co.za/discord/delete_spam_zone.php"
 API_ADD_SPAM_ZONE = "https://www.t-doc.co.za/discord/add_spam_zone.php"
 API_UPDATE_SPAM_ZONE = "https://www.t-doc.co.za/discord/update_spam_zone.php"
+API_SPAM_MAP = "https://www.t-doc.co.za/discord/get_spam_map.php"
+API_UPDATE_SPAM_MAP = "https://www.t-doc.co.za/discord/update_spam_map.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
@@ -597,6 +599,7 @@ class AddZoneButton(discord.ui.Button):
 
 
 
+
 class SpamMenuButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -617,10 +620,27 @@ class SpamMenuButton(discord.ui.Button):
             }
         )
 
+        map_data = await api_get(
+            API_SPAM_MAP,
+            {
+                "server": self.server
+            }
+        )
+
         embed = discord.Embed(
             title=f"🏗 Spam - Server {self.server}",
             color=0xff9900
         )
+
+        # Show server map if one exists
+        if (
+            map_data
+            and isinstance(map_data, dict)
+            and map_data.get("image_url")
+        ):
+            embed.set_image(
+                url=map_data["image_url"]
+            )
 
         if not data:
             embed.description = "No spam zones configured."
@@ -637,6 +657,7 @@ class SpamMenuButton(discord.ui.Button):
             embed=embed,
             view=SpamView(self.server)
         )
+
 
 
 
@@ -658,6 +679,11 @@ class SpamView(discord.ui.View):
         self.add_item(
             DeleteZoneButton(server)
         )
+
+        self.add_item(
+            UploadMapButton(server)
+        )
+
 
 
 
@@ -1080,6 +1106,56 @@ class EditZoneSelectView(discord.ui.View):
 # ========================
 # MODALS
 # ========================
+
+
+class UploadMapButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="🖼 Upload Map",
+            style=discord.ButtonStyle.success
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        await interaction.response.send_modal(
+            SpamMapModal(self.server)
+        )
+
+
+class SpamMapModal(
+    discord.ui.Modal,
+    title="Update Server Map"
+):
+    image_url = discord.ui.TextInput(
+        label="Map Image URL",
+        required=True,
+        max_length=1000
+    )
+
+    def __init__(self, server):
+        super().__init__()
+        self.server = server
+
+    async def on_submit(self, interaction):
+
+        await interaction.response.defer(
+            ephemeral=True
+        )
+
+        await api_get(
+            API_UPDATE_SPAM_MAP,
+            {
+                "server": self.server,
+                "image_url": self.image_url.value
+            }
+        )
+
+        await interaction.followup.send(
+            "✅ Map Updated",
+            ephemeral=True
+        )
 
 
 class EditZoneModal(
