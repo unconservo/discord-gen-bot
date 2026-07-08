@@ -29,6 +29,7 @@ API_CLEAR_ALL = "https://www.t-doc.co.za/discord/clear_all.php"
 API_DINO_FEED = "https://www.t-doc.co.za/discord/dino_feed.php"
 API_ADD_DINO_FEED = "https://www.t-doc.co.za/discord/add_dino_feed.php"
 API_UPDATE_DINO_FEED = "https://www.t-doc.co.za/discord/update_dino_feed.php"
+API_DELETE_DINO_FEED = "https://www.t-doc.co.za/discord/delete_dino_feed.php"
 ROLE_ID = 1133565753409425408  # replace with your role ID
 GEN_CHANNEL_ID = 1516131475312087160   # ✅ ark-generator channel
 LOG_CHANNEL_ID = 1516132183293563010   # ✅ log channel
@@ -205,6 +206,88 @@ class JumpButton(discord.ui.Button):
 # NEW CLASSES FOR NEW DASHBOARD FOR GENERATORS / SPAM / DINO FEED 
 
 
+class DeleteDinoFeedSelectView(discord.ui.View):
+    def __init__(self, data):
+        super().__init__(timeout=120)
+
+        self.add_item(
+            DeleteDinoFeedSelect(data)
+        )
+
+
+class DeleteDinoFeedSelect(discord.ui.Select):
+    def __init__(self, data):
+
+        self.records = data
+
+        options = []
+
+        for row in data[:25]:
+            options.append(
+                discord.SelectOption(
+                    label=row["tp_name"][:100],
+                    value=str(row["id"])
+                )
+            )
+
+        super().__init__(
+            placeholder="Select TP to delete...",
+            options=options
+        )
+
+    async def callback(self, interaction):
+
+        tp_id = int(self.values[0])
+
+        row = next(
+            r for r in self.records
+            if int(r["id"]) == tp_id
+        )
+
+        await api_get(
+            API_DELETE_DINO_FEED,
+            {
+                "id": tp_id
+            }
+        )
+
+        await interaction.response.send_message(
+            f"✅ Deleted: {row['tp_name']}",
+            ephemeral=True
+        )
+
+
+class DeleteDinoFeedButton(discord.ui.Button):
+    def __init__(self, server):
+        super().__init__(
+            label="🗑 Delete TP",
+            style=discord.ButtonStyle.danger
+        )
+
+        self.server = server
+
+    async def callback(self, interaction):
+
+        data = await api_get(
+            API_DINO_FEED,
+            {
+                "server": self.server
+            }
+        )
+
+        if not data:
+            return await interaction.response.send_message(
+                "❌ No TP records found",
+                ephemeral=True
+            )
+
+        await interaction.response.send_message(
+            "Select TP to delete",
+            view=DeleteDinoFeedSelectView(data),
+            ephemeral=True
+        )
+
+
 class ServerButton(discord.ui.Button):
     def __init__(self, server):
         super().__init__(
@@ -314,6 +397,7 @@ class DinoFeedMenuButton(discord.ui.Button):
 
 
 
+
 class DinoFeedView(discord.ui.View):
     def __init__(self, server):
         super().__init__(timeout=None)
@@ -326,6 +410,10 @@ class DinoFeedView(discord.ui.View):
 
         self.add_item(
             EditDinoFeedButton(server)
+        )
+
+        self.add_item(
+            DeleteDinoFeedButton(server)
         )
 
 
