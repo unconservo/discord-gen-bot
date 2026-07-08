@@ -1,4 +1,4 @@
-        
+                
 import discord
 from discord.ext import commands, tasks
 import requests
@@ -641,8 +641,11 @@ class SpamMenuButton(discord.ui.Button):
             print("IMAGE URL =", map_data["image_url"])
 
             
-            embed.set_thumbnail(
-                url=map_data["image_url"]
+           
+                embed.set_image(
+                    url="https://i.imgur.com/ExdKOOz.png"
+                )
+
             
 
         )
