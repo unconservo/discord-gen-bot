@@ -642,13 +642,9 @@ class SpamMenuButton(discord.ui.Button):
 
             
            
-                embed.set_image(
-                    url="https://i.imgur.com/ExdKOOz.png"
-               
-
-            
-
-        )
+            embed.set_image(
+            url="https://i.imgur.com/ExdKOOz.png"
+       )
 
 
         if not data:
