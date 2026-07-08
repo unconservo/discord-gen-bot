@@ -2076,6 +2076,7 @@ class GeneratorSelect(discord.ui.Select):
 
 
 
+
 class SearchSelect(discord.ui.Select):
     def __init__(self, data):
         options = [discord.SelectOption(label=g["name"]) for g in data]
@@ -2093,21 +2094,11 @@ class SearchSelect(discord.ui.Select):
     async def callback(self, interaction):
         name = self.values[0]
 
-        result = [g for g in self.data if g["name"] == name]
-
-        if not result:
-            return await interaction.response.send_message(
-                "❌ Not found",
-                ephemeral=True
-            )
-
-        msg = "\n".join([
-            f"{g['name']} → {format_time(float(g['days']))}"
-            for g in result
-        ])
-
-        await interaction.response.send_message(msg, ephemeral=True)
-
+        await interaction.response.send_message(
+            f"⚡ {name}",
+            view=ActionView(name),
+            ephemeral=True
+        )
 
 
 # ========================
