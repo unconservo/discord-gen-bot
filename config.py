@@ -171,10 +171,41 @@ STATE_FILE_PATH: Path = Path(
 
 
 def validate() -> None:
-    """Fail fast at startup if required secrets are missing."""
+    """Fail fast at startup if required secrets are missing or malformed."""
     missing = [k for k, v in {"TOKEN": TOKEN, "API_KEY": API_KEY}.items() if not v]
     if missing:
         raise RuntimeError(
             f"Missing required environment variables: {', '.join(missing)}. "
             "Set them in your .env file (local) or Railway dashboard (prod)."
+        )
+
+    # Cheap sanity check — a real bot token is ~70 chars, has 2 dots, and no
+    # surrounding quotes/whitespace. This catches the most common pasting
+    # mistakes without ever logging the actual secret.
+    token = TOKEN or ""
+    problems = []
+    if token != token.strip():
+        problems.append("has leading/trailing whitespace")
+    if token.startswith(('"', "'")) or token.endswith(('"', "'")):
+        problems.append("is wrapped in quotes")
+    if token.count(".") != 2:
+        problems.append(f"expected 2 dots in a bot token, found {token.count('.')}")
+    if len(token.strip()) < 50:
+        problems.append(f"length looks too short ({len(token.strip())} chars)")
+
+    # Masked preview: first 6 + last 4 characters, nothing in between.
+    stripped = token.strip()
+    if len(stripped) >= 10:
+        preview = f"{stripped[:6]}...{stripped[-4:]} (len={len(stripped)})"
+    else:
+        preview = f"(len={len(stripped)})"
+
+    import logging
+    log = logging.getLogger(__name__)
+    log.info("TOKEN preview: %s", preview)
+    if problems:
+        log.error(
+            "TOKEN value looks malformed: %s. Please re-copy from the Discord "
+            "Developer Portal (Bot tab -> Reset Token) with no quotes/whitespace.",
+            "; ".join(problems),
         )
