@@ -21,6 +21,7 @@ from config import (
     API_GET,
     API_RATHOLES,
     API_SERVER_SUMMARY,
+    BATTLEMETRICS_IDS,
     DASHBOARD_REFRESH_INTERVAL_MIN,
     LOG_CHANNEL_ID,
     SERVERS,
@@ -52,6 +53,7 @@ async def build_stats_embed() -> discord.Embed:
     # Try the aggregated server-summary endpoint first (cheap).
     summaries: dict[str, dict] = {}
     rathole_counts: dict[str, int] = {}
+    player_counts: dict[str, tuple] = {}  # server -> (count, max, status)
     for server in SERVERS:
         summary = await api_client.get(API_SERVER_SUMMARY, {"server": server})
         summaries[server] = summary if isinstance(summary, dict) else {}
@@ -59,6 +61,17 @@ async def build_stats_embed() -> discord.Embed:
         rathole_counts[server] = (
             len(ratholes_data) if isinstance(ratholes_data, list) else 0
         )
+        bm_id = BATTLEMETRICS_IDS.get(server)
+        if bm_id:
+            from cogs.players import fetch_bm_server  # lazy import
+            bm = await fetch_bm_server(bm_id)
+            player_counts[server] = (
+                bm.get("count", 0),
+                bm.get("max", 0),
+                bm.get("status", "?"),
+            )
+        else:
+            player_counts[server] = (0, 0, "n/a")
 
     # Fall back / cross-check with the raw generator list so counts still make
     # sense if the summary endpoint is unavailable.
@@ -81,6 +94,7 @@ async def build_stats_embed() -> discord.Embed:
     total_gens = 0
     total_critical = 0
     total_ratholes = 0
+    total_online = 0
     for server in SERVERS:
         s = summaries.get(server, {})
         gens = int(s.get("generators", 0))
@@ -90,14 +104,17 @@ async def build_stats_embed() -> discord.Embed:
         dino = int(s.get("dino_feed", 0))
         spam = int(s.get("spam_zones", 0))
         ratholes = int(rathole_counts.get(server, 0))
+        pcount, pmax, pstatus = player_counts.get(server, (0, 0, "n/a"))
 
         total_gens += gens
         total_critical += critical
         total_ratholes += ratholes
+        total_online += pcount
 
         embed.add_field(
             name=f"Server {server}",
             value=(
+                f"Players: **{pcount}/{pmax}** ({pstatus})\n"
                 f"Generators: **{gens}**  |  Critical: **{critical}**\n"
                 f"Low: {low}  |  Healthy: {healthy}\n"
                 f"Dino TPs: {dino}  |  Spam Zones: {spam}  |  Ratholes: {ratholes}"
@@ -106,6 +123,7 @@ async def build_stats_embed() -> discord.Embed:
         )
 
     embed.description = (
+        f"**Players online:** {total_online}   |   "
         f"**Total generators:** {total_gens}   |   "
         f"**Critical:** {total_critical}   |   "
         f"**Ratholes:** {total_ratholes}"

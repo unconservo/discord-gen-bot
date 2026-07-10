@@ -125,6 +125,8 @@ class ServerMenuView(discord.ui.View):
         self.add_item(DinoFeedMenuButton(server))
         self.add_item(SpamMenuButton(server))
         self.add_item(RatholeMenuButton(server))
+        from cogs.players import PlayersButton  # avoid circular import at import time
+        self.add_item(PlayersButton(server))
         self.add_item(HomeButton())
 
 
