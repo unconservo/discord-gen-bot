@@ -61,6 +61,12 @@ The bot will hard-fail at startup if `TOKEN` or `API_KEY` is missing
 3. Set env variables in the Railway dashboard:
    - `TOKEN` — your Discord bot token
    - `API_KEY` — the shared secret expected by your PHP endpoints
+   - `DEV_GUILD_ID` *(optional)* — your **Discord community/server ID**
+     (right-click your Discord icon → Copy Server ID). This is *not* an
+     ARK server tag — it's the Discord community itself. When set, slash
+     commands sync there instantly on boot. Supports a comma-separated
+     list if your bot runs in multiple Discord communities
+     (e.g. `123...,987...`). Leave unset for a global sync (up to ~1h).
 4. Railway detects the `Procfile` and starts the process with
    `worker: python bot.py`. No further config needed.
 5. First deploy will install `requirements.txt` and start the bot.

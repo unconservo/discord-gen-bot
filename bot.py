@@ -8,8 +8,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import sys
 import time
+from pathlib import Path
 from typing import List
+
+# Make sure this script's directory (which contains `cogs/`) is on sys.path
+# regardless of how the process is launched (Railway sometimes uses wrappers).
+_HERE = Path(__file__).resolve().parent
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
 
 import discord
 from discord.ext import commands
@@ -47,7 +56,37 @@ def make_bot() -> commands.Bot:
 
     @bot.event
     async def on_ready() -> None:
-        await bot.tree.sync()
+        # Guild-scoped sync is nearly instant; global sync can take up to
+        # ~1 hour. Set DEV_GUILD_ID (comma-separated for multiple) for
+        # immediate availability.
+        try:
+            if config.DEV_GUILD_IDS:
+                total = 0
+                for gid in config.DEV_GUILD_IDS:
+                    guild = discord.Object(id=gid)
+                    bot.tree.copy_global_to(guild=guild)
+                    synced = await bot.tree.sync(guild=guild)
+                    total += len(synced)
+                    log.info(
+                        "Synced %d slash command(s) to guild %s (instant).",
+                        len(synced),
+                        gid,
+                    )
+                log.info(
+                    "Total: %d slash commands synced across %d guild(s).",
+                    total,
+                    len(config.DEV_GUILD_IDS),
+                )
+            else:
+                synced = await bot.tree.sync()
+                log.info(
+                    "Synced %d slash command(s) globally (may take up to ~1h "
+                    "to appear in every guild).",
+                    len(synced),
+                )
+        except discord.DiscordException as e:
+            log.exception("Slash-command sync failed: %s", e)
+
         await bot.change_presence(
             activity=discord.Game(name="OAO Control Center")
         )
@@ -55,6 +94,16 @@ def make_bot() -> commands.Bot:
 
     @bot.event
     async def setup_hook() -> None:
+        cogs_dir = _HERE / "cogs"
+        if not cogs_dir.is_dir():
+            log.error(
+                "Missing cogs/ folder next to bot.py (expected at %s). "
+                "None of the slash commands will be registered. Make sure the "
+                "cogs/ directory is included in your Railway deployment / git repo.",
+                cogs_dir,
+            )
+            return
+
         for ext in INITIAL_COGS:
             try:
                 await bot.load_extension(ext)

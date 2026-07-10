@@ -54,17 +54,17 @@ API_SERVER_SUMMARY: str = f"{API_BASE}/server_summary.php"
 # =========================================================================
 # DISCORD IDs (fill these in with your real IDs)
 # =========================================================================
-GEN_CHANNEL_ID: int = 1516131475312087160  # ark-generator channel
-LOG_CHANNEL_ID: int = 1516132183293563010  # log channel
-ALERT_CHANNEL_ID: int = 1516171257421500537  # alerts channel
+GEN_CHANNEL_ID: int = 0  # ark-generator channel
+LOG_CHANNEL_ID: int = 0  # log channel
+ALERT_CHANNEL_ID: int = 0  # alerts channel
 
 # Bug fix #2 — DEFAULT_ROLE is now always defined; used when a server-specific
 # role isn't found in SERVER_ROLES. Set to 0 (falsy) to disable role pings.
-DEFAULT_ROLE: int = 1133565753409425408
+DEFAULT_ROLE: int = 0
 
 # Legacy general role id (kept for backwards compatibility with any commands
 # that referenced ROLE_ID directly). Safe to leave as 0.
-ROLE_ID: int = 1133565753409425408
+ROLE_ID: int = 0
 
 # Map server tag -> role id used for @role mentions in alerts.
 SERVER_ROLES: Dict[str, int] = {
@@ -132,6 +132,33 @@ DASHBOARD_REFRESH_INTERVAL_MIN: int = 5
 API_TIMEOUT_SECONDS: int = 15
 API_RETRY_ATTEMPTS: int = 3
 API_RETRY_BASE_DELAY: float = 1.0  # exponential backoff base (seconds)
+
+# =========================================================================
+# SLASH COMMAND SYNC
+# =========================================================================
+# One or more Discord GUILD ids (comma-separated) to sync slash commands to
+# instantly on startup. Leave unset for a global sync (up to ~1h propagation).
+#
+# NOTE: this is your Discord community/server id, NOT an ARK server tag.
+# In Discord: Settings -> Advanced -> Developer Mode ON, then right-click
+# your community icon -> Copy Server ID.
+#
+# Examples:
+#   DEV_GUILD_ID=123456789012345678
+#   DEV_GUILD_ID=123456789012345678,987654321098765432
+_dev_guild_raw = os.getenv("DEV_GUILD_ID", "")
+DEV_GUILD_IDS: List[int] = []
+for _piece in _dev_guild_raw.split(","):
+    _piece = _piece.strip()
+    if not _piece:
+        continue
+    try:
+        DEV_GUILD_IDS.append(int(_piece))
+    except ValueError:
+        pass
+
+# Backwards-compatible single-value alias (first id, or 0 if none).
+DEV_GUILD_ID: int = DEV_GUILD_IDS[0] if DEV_GUILD_IDS else 0
 
 # =========================================================================
 # PERSISTENCE (backlog #1 — survive restarts)
