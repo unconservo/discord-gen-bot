@@ -61,7 +61,7 @@ API_UPLOAD_RATHOLE_IMAGE: str = f"{API_BASE}/upload_rathole_image.php"
 API_SERVER_SUMMARY: str = f"{API_BASE}/server_summary.php"
 
 # =========================================================================
-# BATTLEMETRICS (Ark: Survival Ascended player tracking)
+# BATTLEMETRICS (Ark: Survival Ascended — count-only, anonymous)
 # =========================================================================
 # Map internal server tag -> BattleMetrics server ID.
 # Look up each server at https://www.battlemetrics.com/servers/arksa .
@@ -75,26 +75,20 @@ BATTLEMETRICS_IDS: Dict[str, str] = {
 }
 BATTLEMETRICS_BASE: str = "https://api.battlemetrics.com/servers"
 
-# How often (minutes) the player-tracker loop polls BattleMetrics.
-# BattleMetrics itself refreshes every ~2 min, so anything below that
-# is wasted.
-BATTLEMETRICS_POLL_INTERVAL_MIN: int = 2
-
-# Dedicated Discord channel for join/leave notifications.
-# Set PLAYER_TRACKER_CHANNEL_ID in Railway env vars — falls back to
-# LOG_CHANNEL_ID if 0, or skip alerts entirely if both are 0.
-PLAYER_TRACKER_CHANNEL_ID: int = int(os.getenv("PLAYER_TRACKER_CHANNEL_ID", "0"))
+# ARK: Survival Ascended official servers sit behind Steam Datagram Relay
+# so live player *names* can't be fetched via API or A2S. We display the
+# count from BattleMetrics and link out to their web page for the roster.
 
 # =========================================================================
 # DISCORD IDs (fill these in with your real IDs)
 # =========================================================================
-GEN_CHANNEL_ID: int = 1516131475312087160  # ark-generator channel
-LOG_CHANNEL_ID: int = 1516132183293563010  # log channel
-ALERT_CHANNEL_ID: int = 1516171257421500537  # alerts channel
+GEN_CHANNEL_ID: int = 0  # ark-generator channel
+LOG_CHANNEL_ID: int = 0  # log channel
+ALERT_CHANNEL_ID: int = 0  # alerts channel
 
 # Bug fix #2 — DEFAULT_ROLE is now always defined; used when a server-specific
 # role isn't found in SERVER_ROLES. Set to 0 (falsy) to disable role pings.
-DEFAULT_ROLE: int = 1133565753409425408
+DEFAULT_ROLE: int = 0
 
 # Legacy general role id (kept for backwards compatibility with any commands
 # that referenced ROLE_ID directly). Safe to leave as 0.
