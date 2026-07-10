@@ -1,14 +1,15 @@
 """Ratholes cog — per-server rathole location + image management.
 
-Slash commands (image uploads happen here because Discord modals cannot
-accept file attachments):
-    /rathole_add     server + name + description + optional image
-    /rathole_edit    server + name + optional new_description + optional image
-    /rathole_delete  server + name
+UX (mirrors the spam-zones flow):
+    Server menu -> "Ratholes" button -> RatholeView with:
+        Add / Edit / Delete / Refresh / Back
+    * Add    -> modal (name, description, image URL)
+    * Edit   -> select existing rathole -> modal pre-filled
+    * Delete -> select existing rathole -> confirmation
 
-Server-menu integration:
-    RatholeMenuButton on `ServerMenuView` -> RatholeListView shows all
-    ratholes for that server with their images.
+Slash commands (still supported, useful for direct file uploads because
+Discord modals cannot accept file attachments):
+    /rathole_add / /rathole_edit / /rathole_delete
 """
 
 from __future__ import annotations
@@ -40,7 +41,7 @@ async def _fetch_ratholes(server: str) -> List[dict]:
     return data if isinstance(data, list) else []
 
 
-def _build_rathole_embed(row: dict, index: int, total: int, server: str) -> discord.Embed:
+def _rathole_embed(row: dict, index: int, total: int, server: str) -> discord.Embed:
     embed = discord.Embed(
         title=f"Rathole: {row.get('rathole_name', 'Unnamed')}",
         description=row.get("description") or "*No description*",
@@ -48,47 +49,201 @@ def _build_rathole_embed(row: dict, index: int, total: int, server: str) -> disc
     )
     if row.get("image_url"):
         embed.set_image(url=row["image_url"])
-    created_by = row.get("created_by")
-    if created_by:
-        embed.add_field(name="Added by", value=str(created_by), inline=True)
+    if row.get("created_by"):
+        embed.add_field(name="Added by", value=str(row["created_by"]), inline=True)
     embed.set_footer(text=f"Server {server}  |  {index + 1} / {total}")
     return embed
 
 
-# =========================================================================
-# PAGINATED LIST VIEW
-# =========================================================================
-class RatholeListView(discord.ui.View):
-    """Paginated view of all ratholes for a server. One rathole per page."""
+def _empty_embed(server: str) -> discord.Embed:
+    return discord.Embed(
+        title=f"Ratholes - Server {server}",
+        description=(
+            "No ratholes configured yet.\n\n"
+            "Click **Add Rathole** or use `/rathole_add`."
+        ),
+        color=0x9B59B6,
+    )
 
-    def __init__(self, server: str, ratholes: List[dict], page: int = 0) -> None:
-        super().__init__(timeout=None)
+
+# =========================================================================
+# MODALS
+# =========================================================================
+class AddRatholeModal(discord.ui.Modal, title="Add Rathole"):
+    name = discord.ui.TextInput(label="Rathole Name", max_length=255)
+    description = discord.ui.TextInput(
+        label="Description",
+        style=discord.TextStyle.paragraph,
+        required=False,
+        max_length=1000,
+    )
+    image_url = discord.ui.TextInput(
+        label="Image URL (optional)",
+        placeholder="Right-click any Discord image -> Copy Link, then paste here",
+        required=False,
+        max_length=1000,
+    )
+
+    def __init__(self, server: str) -> None:
+        super().__init__()
         self.server = server
-        self.ratholes = ratholes
-        self.page = max(0, min(page, len(ratholes) - 1)) if ratholes else 0
 
-        # Nav buttons.
-        self.add_item(RatholePrevButton())
-        self.add_item(RatholeNextButton())
-        self.add_item(RatholeRefreshButton(server))
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer(ephemeral=True)
+        await api_client.get(
+            API_ADD_RATHOLE,
+            {
+                "server": self.server,
+                "rathole_name": self.name.value,
+                "description": self.description.value,
+                "image_url": self.image_url.value,
+                "created_by": interaction.user.name,
+            },
+        )
+        logger = getattr(interaction.client, "log_action", None)
+        if logger:
+            await logger(interaction.user, "RATHOLE_ADD", self.name.value, self.server)
+        await interaction.followup.send(
+            f"Rathole **{self.name.value}** added.", ephemeral=True
+        )
 
-        # Back to server menu.
-        from cogs.dashboard import BackButton  # lazy — avoids circular import
 
-        self.add_item(BackButton(server))
+class EditRatholeModal(discord.ui.Modal, title="Edit Rathole"):
+    description = discord.ui.TextInput(
+        label="Description",
+        style=discord.TextStyle.paragraph,
+        required=False,
+        max_length=1000,
+    )
+    image_url = discord.ui.TextInput(
+        label="Image URL",
+        placeholder="Paste a new URL, or leave unchanged",
+        required=False,
+        max_length=1000,
+    )
 
-    def current_embed(self) -> discord.Embed:
-        if not self.ratholes:
-            return discord.Embed(
-                title=f"Ratholes - Server {self.server}",
-                description=(
-                    "No ratholes configured yet.\n\n"
-                    "Use `/rathole_add` to add one."
-                ),
-                color=0x9B59B6,
-            )
-        return _build_rathole_embed(
-            self.ratholes[self.page], self.page, len(self.ratholes), self.server
+    def __init__(self, server: str, row: dict) -> None:
+        super().__init__()
+        self.server = server
+        self.rathole_name = row["rathole_name"]
+        self.description.default = row.get("description") or ""
+        self.image_url.default = row.get("image_url") or ""
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer(ephemeral=True)
+        params = {
+            "server": self.server,
+            "rathole_name": self.rathole_name,
+            "description": self.description.value,
+            "image_url": self.image_url.value,
+        }
+        await api_client.get(API_UPDATE_RATHOLE, params)
+        logger = getattr(interaction.client, "log_action", None)
+        if logger:
+            await logger(interaction.user, "RATHOLE_EDIT", self.rathole_name, self.server)
+        await interaction.followup.send(
+            f"Rathole **{self.rathole_name}** updated.", ephemeral=True
+        )
+
+
+# =========================================================================
+# SELECTS (edit / delete pickers)
+# =========================================================================
+class EditRatholeSelect(discord.ui.Select):
+    def __init__(self, server: str, records: List[dict]) -> None:
+        self.server = server
+        self.records = records
+        options = [
+            discord.SelectOption(label=r["rathole_name"][:100], value=r["rathole_name"])
+            for r in records[:25]
+        ]
+        super().__init__(placeholder="Select rathole to edit...", options=options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        name = self.values[0]
+        row = next(r for r in self.records if r["rathole_name"] == name)
+        await interaction.response.send_modal(EditRatholeModal(self.server, row))
+
+
+class EditRatholeSelectView(discord.ui.View):
+    def __init__(self, server: str, records: List[dict]) -> None:
+        super().__init__(timeout=120)
+        self.add_item(EditRatholeSelect(server, records))
+
+
+class DeleteRatholeSelect(discord.ui.Select):
+    def __init__(self, server: str, records: List[dict]) -> None:
+        self.server = server
+        self.records = records
+        options = [
+            discord.SelectOption(label=r["rathole_name"][:100], value=r["rathole_name"])
+            for r in records[:25]
+        ]
+        super().__init__(placeholder="Select rathole to delete...", options=options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        name = self.values[0]
+        await api_client.get(
+            API_DELETE_RATHOLE,
+            {"server": self.server, "rathole_name": name},
+        )
+        logger = getattr(interaction.client, "log_action", None)
+        if logger:
+            await logger(interaction.user, "RATHOLE_DELETE", name, self.server)
+        await interaction.response.send_message(
+            f"Deleted rathole **{name}**.", ephemeral=True
+        )
+
+
+class DeleteRatholeSelectView(discord.ui.View):
+    def __init__(self, server: str, records: List[dict]) -> None:
+        super().__init__(timeout=120)
+        self.add_item(DeleteRatholeSelect(server, records))
+
+
+# =========================================================================
+# ACTION BUTTONS
+# =========================================================================
+class AddRatholeButton(discord.ui.Button):
+    def __init__(self, server: str) -> None:
+        super().__init__(label="Add Rathole", style=discord.ButtonStyle.success)
+        self.server = server
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        await interaction.response.send_modal(AddRatholeModal(self.server))
+
+
+class EditRatholeButton(discord.ui.Button):
+    def __init__(self, server: str) -> None:
+        super().__init__(label="Edit Rathole", style=discord.ButtonStyle.primary)
+        self.server = server
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        records = await _fetch_ratholes(self.server)
+        if not records:
+            await interaction.response.send_message("No ratholes found.", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            "Select rathole to edit",
+            view=EditRatholeSelectView(self.server, records),
+            ephemeral=True,
+        )
+
+
+class DeleteRatholeButton(discord.ui.Button):
+    def __init__(self, server: str) -> None:
+        super().__init__(label="Delete Rathole", style=discord.ButtonStyle.danger)
+        self.server = server
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        records = await _fetch_ratholes(self.server)
+        if not records:
+            await interaction.response.send_message("No ratholes found.", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            "Select rathole to delete",
+            view=DeleteRatholeSelectView(self.server, records),
+            ephemeral=True,
         )
 
 
@@ -97,7 +252,7 @@ class RatholePrevButton(discord.ui.Button):
         super().__init__(label="Prev", style=discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        view: RatholeListView = self.view  # type: ignore[assignment]
+        view: "RatholeView" = self.view  # type: ignore[assignment]
         if not view.ratholes:
             await interaction.response.defer()
             return
@@ -110,7 +265,7 @@ class RatholeNextButton(discord.ui.Button):
         super().__init__(label="Next", style=discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        view: RatholeListView = self.view  # type: ignore[assignment]
+        view: "RatholeView" = self.view  # type: ignore[assignment]
         if not view.ratholes:
             await interaction.response.defer()
             return
@@ -125,10 +280,42 @@ class RatholeRefreshButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
-        ratholes = await _fetch_ratholes(self.server)
-        new_view = RatholeListView(self.server, ratholes, page=0)
+        records = await _fetch_ratholes(self.server)
+        new_view = RatholeView(self.server, records, page=0)
         await interaction.edit_original_response(
             content=None, embed=new_view.current_embed(), view=new_view
+        )
+
+
+# =========================================================================
+# MAIN VIEW
+# =========================================================================
+class RatholeView(discord.ui.View):
+    """Full CRUD view for ratholes on one server."""
+
+    def __init__(self, server: str, ratholes: List[dict], page: int = 0) -> None:
+        super().__init__(timeout=None)
+        self.server = server
+        self.ratholes = ratholes
+        self.page = max(0, min(page, len(ratholes) - 1)) if ratholes else 0
+
+        self.add_item(AddRatholeButton(server))
+        self.add_item(EditRatholeButton(server))
+        self.add_item(DeleteRatholeButton(server))
+        self.add_item(RatholeRefreshButton(server))
+
+        self.add_item(RatholePrevButton())
+        self.add_item(RatholeNextButton())
+
+        from cogs.dashboard import BackButton  # lazy import to avoid cycle
+
+        self.add_item(BackButton(server))
+
+    def current_embed(self) -> discord.Embed:
+        if not self.ratholes:
+            return _empty_embed(self.server)
+        return _rathole_embed(
+            self.ratholes[self.page], self.page, len(self.ratholes), self.server
         )
 
 
@@ -136,8 +323,6 @@ class RatholeRefreshButton(discord.ui.Button):
 # SERVER-MENU ENTRY BUTTON
 # =========================================================================
 class RatholeMenuButton(discord.ui.Button):
-    """Added to ServerMenuView so users can browse ratholes per server."""
-
     def __init__(self, server: str) -> None:
         super().__init__(
             label="Ratholes",
@@ -148,38 +333,33 @@ class RatholeMenuButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
-        ratholes = await _fetch_ratholes(self.server)
-        view = RatholeListView(self.server, ratholes, page=0)
+        records = await _fetch_ratholes(self.server)
+        view = RatholeView(self.server, records, page=0)
         await interaction.edit_original_response(
             content=None, embed=view.current_embed(), view=view
         )
 
 
 # =========================================================================
-# SLASH COMMANDS
+# SLASH COMMANDS (kept — file-upload path)
 # =========================================================================
 def _server_choices() -> List[app_commands.Choice[str]]:
     return [app_commands.Choice(name=s, value=s) for s in SERVERS]
 
 
 class RatholesCog(commands.Cog):
-    """Slash commands for creating / editing / deleting ratholes."""
-
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
-    # ------------------------------------------------------------------
-    # /rathole_add
-    # ------------------------------------------------------------------
     @app_commands.command(
         name="rathole_add",
-        description="Add a rathole location to a server (optionally with an image).",
+        description="Add a rathole (supports direct file upload).",
     )
     @app_commands.describe(
-        server="ARK server tag (e.g. 2491)",
-        name="Short name for this rathole",
-        description="Longer notes on where / how to find it",
-        image="Screenshot (optional)",
+        server="ARK server tag",
+        name="Rathole name",
+        description="Notes on the rathole",
+        image="Optional screenshot",
     )
     @app_commands.choices(server=_server_choices())
     async def rathole_add(
@@ -191,7 +371,6 @@ class RatholesCog(commands.Cog):
         image: Optional[discord.Attachment] = None,
     ) -> None:
         await interaction.response.defer(ephemeral=True)
-
         params = {
             "server": server.value,
             "rathole_name": name,
@@ -200,29 +379,23 @@ class RatholesCog(commands.Cog):
         }
         if image is not None:
             params["image_url"] = image.url
-
         await api_client.get(API_ADD_RATHOLE, params)
-
         logger = getattr(interaction.client, "log_action", None)
         if logger:
             await logger(interaction.user, "RATHOLE_ADD", name, server.value)
-
         img_note = " with image" if image is not None else ""
         await interaction.followup.send(
-            f"Rathole **{name}** added to server **{server.value}**{img_note}.",
+            f"Rathole **{name}** added to **{server.value}**{img_note}.",
             ephemeral=True,
         )
 
-    # ------------------------------------------------------------------
-    # /rathole_edit
-    # ------------------------------------------------------------------
     @app_commands.command(
         name="rathole_edit",
-        description="Edit a rathole's description and/or replace its image.",
+        description="Edit a rathole (upload a new image or update description).",
     )
     @app_commands.describe(
         server="ARK server tag",
-        name="Name of the rathole to edit",
+        name="Rathole to edit",
         description="New description (optional)",
         image="New screenshot (optional)",
     )
@@ -236,39 +409,31 @@ class RatholesCog(commands.Cog):
         image: Optional[discord.Attachment] = None,
     ) -> None:
         await interaction.response.defer(ephemeral=True)
-
         if description is None and image is None:
             await interaction.followup.send(
-                "Nothing to update - supply `description` and/or `image`.",
+                "Nothing to update - supply description and/or image.",
                 ephemeral=True,
             )
             return
-
         params: dict = {"server": server.value, "rathole_name": name}
         if description is not None:
             params["description"] = description
         if image is not None:
             params["image_url"] = image.url
-
         await api_client.get(API_UPDATE_RATHOLE, params)
-
         logger = getattr(interaction.client, "log_action", None)
         if logger:
             await logger(interaction.user, "RATHOLE_EDIT", name, server.value)
-
         await interaction.followup.send(
-            f"Rathole **{name}** updated on server **{server.value}**.",
+            f"Rathole **{name}** updated on **{server.value}**.",
             ephemeral=True,
         )
 
-    # ------------------------------------------------------------------
-    # /rathole_delete
-    # ------------------------------------------------------------------
     @app_commands.command(
         name="rathole_delete",
-        description="Delete a rathole from a server.",
+        description="Delete a rathole.",
     )
-    @app_commands.describe(server="ARK server tag", name="Name of the rathole")
+    @app_commands.describe(server="ARK server tag", name="Rathole to delete")
     @app_commands.choices(server=_server_choices())
     async def rathole_delete(
         self,
@@ -277,18 +442,15 @@ class RatholesCog(commands.Cog):
         name: str,
     ) -> None:
         await interaction.response.defer(ephemeral=True)
-
         await api_client.get(
             API_DELETE_RATHOLE,
             {"server": server.value, "rathole_name": name},
         )
-
         logger = getattr(interaction.client, "log_action", None)
         if logger:
             await logger(interaction.user, "RATHOLE_DELETE", name, server.value)
-
         await interaction.followup.send(
-            f"Rathole **{name}** deleted from server **{server.value}**.",
+            f"Rathole **{name}** deleted from **{server.value}**.",
             ephemeral=True,
         )
 
