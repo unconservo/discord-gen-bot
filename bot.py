@@ -43,6 +43,7 @@ INITIAL_COGS: List[str] = [
     "cogs.generators",
     "cogs.dinos",
     "cogs.spam_zones",
+    "cogs.ratholes",
     "cogs.dashboard",
     "cogs.alerts",
     "cogs.stats",

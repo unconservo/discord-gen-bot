@@ -51,18 +51,24 @@ API_DELETE_SPAM_ZONE: str = f"{API_BASE}/delete_spam_zone.php"
 API_SPAM_MAP: str = f"{API_BASE}/get_spam_map.php"
 API_UPDATE_SPAM_MAP: str = f"{API_BASE}/update_spam_map.php"
 
+# Ratholes (see PHP_SETUP.md for the required schema + endpoints).
+API_RATHOLES: str = f"{API_BASE}/ratholes.php"
+API_ADD_RATHOLE: str = f"{API_BASE}/add_rathole.php"
+API_UPDATE_RATHOLE: str = f"{API_BASE}/update_rathole.php"
+API_DELETE_RATHOLE: str = f"{API_BASE}/delete_rathole.php"
+
 API_SERVER_SUMMARY: str = f"{API_BASE}/server_summary.php"
 
 # =========================================================================
 # DISCORD IDs (fill these in with your real IDs)
 # =========================================================================
-GEN_CHANNEL_ID: int = 1516131475312087160  # ark-generator channel
-LOG_CHANNEL_ID: int = 1516132183293563010  # log channel
-ALERT_CHANNEL_ID: int = 1516171257421500537  # alerts channel
+GEN_CHANNEL_ID: int = 0  # ark-generator channel
+LOG_CHANNEL_ID: int = 0  # log channel
+ALERT_CHANNEL_ID: int = 0  # alerts channel
 
 # Bug fix #2 — DEFAULT_ROLE is now always defined; used when a server-specific
 # role isn't found in SERVER_ROLES. Set to 0 (falsy) to disable role pings.
-DEFAULT_ROLE: int = 1133565753409425408
+DEFAULT_ROLE: int = 0
 
 # Legacy general role id (kept for backwards compatibility with any commands
 # that referenced ROLE_ID directly). Safe to leave as 0.

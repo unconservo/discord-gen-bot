@@ -26,6 +26,7 @@ discord-bot/
     ├── generators.py       # dashboard, add/refuel/rename/delete, tools, search
     ├── dinos.py            # dino-feed TP CRUD
     ├── spam_zones.py       # spam-zone CRUD + map upload
+    ├── ratholes.py         # rathole CRUD + image uploads (see PHP_SETUP.md)
     ├── dashboard.py        # /oao_dashboard + auto-refresh + persistent views
     ├── alerts.py           # alert loop, per-server/severity channel routing
     ├── stats.py            # /oao_stats + daily snapshot post
@@ -139,6 +140,9 @@ circular import errors (see how `cogs/dinos.py` imports `BackButton` from
 - Slash command: **`/oao_dashboard`** — opens the top-level server picker.
 - Slash command: **`/oao_stats`** — posts a public snapshot embed of every
   server (total gens, critical, low, healthy + dino TP + spam zone counts).
+- Slash commands: **`/rathole_add` / `/rathole_edit` / `/rathole_delete`** —
+  manage rathole locations + screenshots per server. Requires the new
+  PHP endpoints from `PHP_SETUP.md` (drop-in files, one-off SQL migration).
 - Auto-refresh loop: every 5 minutes, all registered dashboard messages
   are re-edited with fresh data (`DASHBOARD_REFRESH_INTERVAL_MIN`).
 - Alert loop: every 10 minutes, `check_alerts` walks every generator and
