@@ -41,16 +41,23 @@ async def fetch_bm_server(bm_id: str) -> Dict[str, Any]:
     Shape::
         {
             "name": "EU-PVP-Aberration2491",
-            "status": "online" | "offline" | "dead" | ...,
+            "status": "online" | "offline" | ...,
             "count": 1,
             "max": 70,
-            "players": ["SurvivorBob", "TastierGem"]  # names only
+            "players": ["SurvivorBob", "TastierGem"],  # sorted names for display
+            "player_details": {
+                "SurvivorBob": {
+                    "id": "123456",
+                    "session_start": "2026-02-10T18:30:00.000Z",
+                    "bm_url": "https://www.battlemetrics.com/players/123456"
+                }
+            }
         }
 
     On any HTTP / parse failure returns a status='error' shell so callers
     can render 'unknown' without crashing.
     """
-    url = f"{BATTLEMETRICS_BASE}/{bm_id}?include=player"
+    url = f"{BATTLEMETRICS_BASE}/{bm_id}?include=player,session"
     try:
         timeout = aiohttp.ClientTimeout(total=10)
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -58,22 +65,59 @@ async def fetch_bm_server(bm_id: str) -> Dict[str, Any]:
                 payload = await resp.json(content_type=None)
     except Exception as e:  # noqa: BLE001
         log.warning("BattleMetrics fetch failed for %s: %s", bm_id, e)
-        return {"name": "?", "status": "error", "count": 0, "max": 0, "players": []}
+        return {
+            "name": "?",
+            "status": "error",
+            "count": 0,
+            "max": 0,
+            "players": [],
+            "player_details": {},
+        }
 
     data = payload.get("data") or {}
     attrs = data.get("attributes") or {}
     included = payload.get("included") or []
-    players = [
-        (item.get("attributes") or {}).get("name", "?")
-        for item in included
-        if item.get("type") == "player"
-    ]
+
+    # Map player_id -> player_name from the player entries.
+    player_names: Dict[str, str] = {}
+    for item in included:
+        if item.get("type") != "player":
+            continue
+        pid = str(item.get("id", ""))
+        pname = (item.get("attributes") or {}).get("name", "?")
+        if pid:
+            player_names[pid] = pname
+
+    # Map player_id -> session_start from session entries where stop is null
+    # (currently active session).
+    session_starts: Dict[str, str] = {}
+    for item in included:
+        if item.get("type") != "session":
+            continue
+        sattrs = item.get("attributes") or {}
+        if sattrs.get("stop") is not None:
+            continue  # closed session; ignore
+        rels = item.get("relationships") or {}
+        pdata = ((rels.get("player") or {}).get("data") or {})
+        pid = str(pdata.get("id", ""))
+        if pid and sattrs.get("start"):
+            session_starts[pid] = sattrs["start"]
+
+    player_details: Dict[str, Dict[str, str]] = {}
+    for pid, pname in player_names.items():
+        player_details[pname] = {
+            "id": pid,
+            "session_start": session_starts.get(pid, ""),
+            "bm_url": f"https://www.battlemetrics.com/players/{pid}",
+        }
+
     return {
         "name": attrs.get("name", "?"),
         "status": attrs.get("status", "?"),
         "count": int(attrs.get("players") or 0),
         "max": int(attrs.get("maxPlayers") or 0),
-        "players": sorted(players, key=str.lower),
+        "players": sorted(player_names.values(), key=str.lower),
+        "player_details": player_details,
     }
 
 
@@ -99,6 +143,17 @@ def build_players_embed(server: str, data: Dict[str, Any]) -> discord.Embed:
     )
 
     players: List[str] = data.get("players") or []
+    details: Dict[str, Dict[str, str]] = data.get("player_details") or {}
+
+    def _line(name: str) -> str:
+        d = details.get(name) or {}
+        url = d.get("bm_url")
+        started = d.get("session_start", "")
+        since = _format_duration(started)
+        if url:
+            return f"• [{name}]({url}) — {since}"
+        return f"• {name}"
+
     if players:
         # Chunk into fields of ~10 names each so long lists don't overflow.
         chunk = 10
@@ -106,7 +161,7 @@ def build_players_embed(server: str, data: Dict[str, Any]) -> discord.Embed:
             slice_ = players[idx : idx + chunk]
             embed.add_field(
                 name=f"Roster ({idx + 1}-{idx + len(slice_)})",
-                value="\n".join(f"• {p}" for p in slice_),
+                value="\n".join(_line(p) for p in slice_),
                 inline=False,
             )
     else:
@@ -163,6 +218,25 @@ def _diff_rosters(
     return sorted(new - old, key=str.lower), sorted(old - new, key=str.lower)
 
 
+def _format_duration(start_iso: str) -> str:
+    """Return human-readable duration since an ISO timestamp string."""
+    if not start_iso:
+        return "unknown"
+    try:
+        start = dt.datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
+    except ValueError:
+        return "unknown"
+    delta = dt.datetime.now(dt.timezone.utc) - start
+    total_seconds = int(delta.total_seconds())
+    if total_seconds < 0:
+        return "unknown"
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes = remainder // 60
+    if hours:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m"
+
+
 class PlayerTrackerCog(commands.Cog):
     """Polls BattleMetrics every N minutes and posts join/leave notices."""
 
@@ -170,6 +244,8 @@ class PlayerTrackerCog(commands.Cog):
         self.bot = bot
         # server -> set of player names last seen
         self._rosters: Dict[str, Set[str]] = {}
+        # server -> {player_name -> details dict from fetch_bm_server}
+        self._details: Dict[str, Dict[str, Dict[str, str]]] = {}
         # Track whether the first sample has been taken so we don't spam
         # "everyone just joined" on startup.
         self._primed: Set[str] = set()
@@ -197,8 +273,13 @@ class PlayerTrackerCog(commands.Cog):
                 continue
 
             new_roster: Set[str] = set(data.get("players") or [])
+            new_details: Dict[str, Dict[str, str]] = (
+                data.get("player_details") or {}
+            )
             old_roster = self._rosters.get(server, set())
+            old_details = self._details.get(server, {})
             self._rosters[server] = new_roster
+            self._details[server] = new_details
 
             if server not in self._primed:
                 self._primed.add(server)
@@ -217,15 +298,35 @@ class PlayerTrackerCog(commands.Cog):
                 timestamp=dt.datetime.now(dt.timezone.utc),
             )
             if joined:
+                lines = []
+                for name in joined[:25]:
+                    d = new_details.get(name) or {}
+                    bm_url = d.get("bm_url")
+                    session_start = d.get("session_start", "")
+                    since = _format_duration(session_start)
+                    if bm_url:
+                        lines.append(f"• [{name}]({bm_url}) — session started {since} ago")
+                    else:
+                        lines.append(f"• {name}")
                 embed.add_field(
                     name=f"Joined ({len(joined)})",
-                    value="\n".join(f"• {p}" for p in joined[:25]),
+                    value="\n".join(lines) or "—",
                     inline=False,
                 )
             if left:
+                lines = []
+                for name in left[:25]:
+                    prev = old_details.get(name) or {}
+                    bm_url = prev.get("bm_url")
+                    session_start = prev.get("session_start", "")
+                    duration = _format_duration(session_start)
+                    if bm_url:
+                        lines.append(f"• [{name}]({bm_url}) — was online for {duration}")
+                    else:
+                        lines.append(f"• {name} — was online for {duration}")
                 embed.add_field(
                     name=f"Left ({len(left)})",
-                    value="\n".join(f"• {p}" for p in left[:25]),
+                    value="\n".join(lines) or "—",
                     inline=False,
                 )
             embed.set_footer(
