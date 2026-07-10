@@ -1,0 +1,153 @@
+"""Central configuration for the OAO Discord Bot.
+
+All secrets are loaded from environment variables. All tunable constants,
+API endpoints, channel IDs and role mappings live here so that other
+modules never need to know a URL literal or magic number.
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import Dict, List, Optional
+
+from dotenv import load_dotenv
+
+# Load local .env (Railway injects env vars directly, so this is a no-op there)
+load_dotenv()
+
+# =========================================================================
+# SECRETS (loaded from env vars — never commit real values)
+# =========================================================================
+TOKEN: Optional[str] = os.getenv("TOKEN")
+API_KEY: Optional[str] = os.getenv("API_KEY")
+
+# =========================================================================
+# API BASE + ENDPOINTS
+# =========================================================================
+API_BASE: str = "https://www.t-doc.co.za/discord"
+
+API_GET: str = f"{API_BASE}/generators.php"
+API_ADD: str = f"{API_BASE}/add.php"
+API_UPDATE: str = f"{API_BASE}/update.php"
+API_DELETE: str = f"{API_BASE}/delete.php"
+API_RESTORE: str = f"{API_BASE}/restore.php"
+API_TRASH: str = f"{API_BASE}/trash.php"
+API_CLEAR_ALL: str = f"{API_BASE}/clear_all.php"
+
+API_DINO_FEED: str = f"{API_BASE}/dino_feed.php"
+API_ADD_DINO_FEED: str = f"{API_BASE}/add_dino_feed.php"
+API_UPDATE_DINO_FEED: str = f"{API_BASE}/update_dino_feed.php"
+API_DELETE_DINO_FEED: str = f"{API_BASE}/delete_dino_feed.php"
+
+API_SPAM_ZONES: str = f"{API_BASE}/spam_zones.php"
+API_ADD_SPAM_ZONE: str = f"{API_BASE}/add_spam_zone.php"
+API_UPDATE_SPAM_ZONE: str = f"{API_BASE}/update_spam_zone.php"
+API_DELETE_SPAM_ZONE: str = f"{API_BASE}/delete_spam_zone.php"
+
+# NOTE: Bug fix #3 — duplicate API_SPAM_MAP definition removed (kept once).
+API_SPAM_MAP: str = f"{API_BASE}/get_spam_map.php"
+API_UPDATE_SPAM_MAP: str = f"{API_BASE}/update_spam_map.php"
+
+API_SERVER_SUMMARY: str = f"{API_BASE}/server_summary.php"
+
+# =========================================================================
+# DISCORD IDs (fill these in with your real IDs)
+# =========================================================================
+GEN_CHANNEL_ID: int = 0  # ark-generator channel
+LOG_CHANNEL_ID: int = 0  # log channel
+ALERT_CHANNEL_ID: int = 0  # alerts channel
+
+# Bug fix #2 — DEFAULT_ROLE is now always defined; used when a server-specific
+# role isn't found in SERVER_ROLES. Set to 0 (falsy) to disable role pings.
+DEFAULT_ROLE: int = 0
+
+# Legacy general role id (kept for backwards compatibility with any commands
+# that referenced ROLE_ID directly). Safe to leave as 0.
+ROLE_ID: int = 0
+
+# Map server tag -> role id used for @role mentions in alerts.
+SERVER_ROLES: Dict[str, int] = {
+    # "2491": 1516139334070440050,
+}
+
+# ---------------------------------------------------------------------------
+# Per-server / per-severity alert channels (backlog #2)
+#
+# Look-up order for `AlertsCog`:
+#   1. ALERT_CHANNELS[server][severity]   (e.g. "critical" / "very_low" / "low")
+#   2. ALERT_CHANNELS[server]["default"]
+#   3. ALERT_CHANNELS["_default"][severity]
+#   4. ALERT_CHANNELS["_default"]["default"]
+#   5. ALERT_CHANNEL_ID (global fallback above)
+#
+# Leave empty to use ALERT_CHANNEL_ID for everything.
+# ---------------------------------------------------------------------------
+ALERT_CHANNELS: Dict[str, Dict[str, int]] = {
+    # "2491": {"critical": 111, "very_low": 222, "low": 222, "default": 333},
+    # "_default": {"critical": 444},
+}
+
+# Optional dedicated channel for the daily /oao_stats snapshot.
+# Falls back to ALERT_CHANNEL_ID (then to LOG_CHANNEL_ID) if 0.
+STATS_CHANNEL_ID: int = 0
+# Hour of the day (0-23, UTC) at which the daily stats post fires.
+STATS_POST_HOUR_UTC: int = 12
+
+# =========================================================================
+# GAME / DOMAIN CONSTANTS
+# =========================================================================
+SERVERS: List[str] = [
+    "2491",
+    "2175",
+    "2513",
+    "2779",
+    "2609",
+    "2875",
+]
+
+# Pagination page size for the dashboard.
+PER_PAGE: int = 15
+
+# =========================================================================
+# ALERT THRESHOLDS (in HOURS unless noted)
+# =========================================================================
+CRITICAL_HOURS: float = 1.0
+VERY_LOW_HOURS: float = 3.0
+LOW_HOURS: float = 6.0
+
+# Dashboard color thresholds (in DAYS, matches display logic).
+CRITICAL_DAYS: float = 5.0
+LOW_DAYS: float = 10.0
+
+# =========================================================================
+# TASK INTERVALS (minutes)
+# =========================================================================
+ALERT_CHECK_INTERVAL_MIN: int = 10
+DASHBOARD_REFRESH_INTERVAL_MIN: int = 5
+
+# =========================================================================
+# API CLIENT SETTINGS
+# =========================================================================
+API_TIMEOUT_SECONDS: int = 15
+API_RETRY_ATTEMPTS: int = 3
+API_RETRY_BASE_DELAY: float = 1.0  # exponential backoff base (seconds)
+
+# =========================================================================
+# PERSISTENCE (backlog #1 — survive restarts)
+# =========================================================================
+# Location for the small JSON file that stores dashboard message ids so
+# refresh_dashboard() can keep editing them after a bot restart.
+STATE_FILE_PATH: Path = Path(
+    os.getenv("STATE_FILE_PATH", str(Path(__file__).parent / ".bot_state.json"))
+)
+
+
+def validate() -> None:
+    """Fail fast at startup if required secrets are missing."""
+    missing = [k for k, v in {"TOKEN": TOKEN, "API_KEY": API_KEY}.items() if not v]
+    if missing:
+        raise RuntimeError(
+            f"Missing required environment variables: {', '.join(missing)}. "
+            "Set them in your .env file (local) or Railway dashboard (prod)."
+        )
