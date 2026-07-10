@@ -21,6 +21,7 @@ from config import (
     API_GET,
     API_RATHOLES,
     API_SERVER_SUMMARY,
+    DASHBOARD_REFRESH_INTERVAL_MIN,
     LOG_CHANNEL_ID,
     SERVERS,
     STATS_CHANNEL_ID,
@@ -43,7 +44,7 @@ def _classify_gen(days: float) -> str:
 async def build_stats_embed() -> discord.Embed:
     """Compose the stats snapshot embed from the two summary endpoints."""
     embed = discord.Embed(
-        title="OAO Daily Snapshot",
+        title="OAO Servers Snapshot",
         color=0x2ECC71,
         timestamp=dt.datetime.now(dt.timezone.utc),
     )
@@ -109,7 +110,15 @@ async def build_stats_embed() -> discord.Embed:
         f"**Critical:** {total_critical}   |   "
         f"**Ratholes:** {total_ratholes}"
     )
-    embed.set_footer(text="Auto-posted daily")
+    embed.add_field(
+        name="\u200b",
+        value=(
+            f"Run `/oao_dashboard` to open the **OAO Control Center**.\n"
+            f"_Snapshot auto-updates every {DASHBOARD_REFRESH_INTERVAL_MIN} min._"
+        ),
+        inline=False,
+    )
+    embed.set_footer(text=f"Auto-updating every {DASHBOARD_REFRESH_INTERVAL_MIN} min")
     return embed
 
 
