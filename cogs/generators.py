@@ -125,28 +125,34 @@ def build_embed(
 # REFRESH HELPER (bug fix #1)
 # =========================================================================
 async def refresh_dashboard(bot: Optional[commands.Bot] = None) -> None:
-    """Re-edit every registered dashboard message with fresh data.
+    """Re-edit every registered dashboard message with a fresh **stats
+    snapshot** (compact) instead of the giant paginated generator list.
+
+    The full generator dashboard was too long — every auto-refresh would
+    push a huge card into the channel. Users can still click into the
+    generator dashboard via the server-selection buttons on the same message.
 
     Cogs register their dashboard messages via `state.register_dashboard(...)`.
-    This helper fetches the latest generator list and updates each message
-    in place. Failures are logged but never raised — a broken message
-    should not kill the caller's flow.
+    Failures are logged but never raised — a broken message should not kill
+    the caller's flow.
     """
     dashboards = await state.all_dashboards()
     if not dashboards:
         return
 
-    data = await api_client.get(API_GET)
-    if not isinstance(data, list):
-        log.warning("refresh_dashboard: expected list from API_GET, got %r", type(data))
+    # Lazy imports — avoid circular deps between generators / stats / dashboard.
+    from cogs.dashboard import ServerSelectionView
+    from cogs.stats import build_stats_embed
+
+    try:
+        embed = await build_stats_embed()
+    except Exception as e:  # noqa: BLE001
+        log.warning("refresh_dashboard: build_stats_embed failed: %s", e)
         return
 
     for channel_id, message in dashboards.items():
         try:
-            await message.edit(
-                embed=build_embed(data, 0, None),
-                view=MainView(data, 0, "dashboard", None),
-            )
+            await message.edit(embed=embed, view=ServerSelectionView())
         except discord.NotFound:
             log.info("Dashboard message in channel %s no longer exists.", channel_id)
         except discord.DiscordException as e:
@@ -210,7 +216,10 @@ class RefuelModal(discord.ui.Modal, title="Refuel Generator"):
             {
                 "name": self.name,
                 "days": val,
-                "updated_at": now_utc().isoformat(),
+                # Match the original bot's format: naive-UTC ISO without a
+                # timezone suffix. MySQL DATETIME/TIMESTAMP columns reject
+                # the "+00:00" suffix produced by an aware datetime.
+                "updated_at": now_utc().replace(tzinfo=None).isoformat(),
             },
         )
 
