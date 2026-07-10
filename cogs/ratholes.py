@@ -90,6 +90,14 @@ def _rathole_embed(row: dict, index: int, total: int, server: str) -> discord.Em
         description=row.get("description") or "*No description*",
         color=0x9B59B6,
     )
+    lat = row.get("lat")
+    lon = row.get("lon")
+    if lat not in (None, "", "0", 0) or lon not in (None, "", "0", 0):
+        embed.add_field(
+            name="Coordinates",
+            value=f"Lat: **{lat or '?'}**   Lon: **{lon or '?'}**",
+            inline=False,
+        )
     if row.get("image_url"):
         embed.set_image(url=row["image_url"])
     if row.get("created_by"):
@@ -181,6 +189,18 @@ class AddRatholeModal(discord.ui.Modal, title="Add Rathole"):
         required=False,
         max_length=1000,
     )
+    lat = discord.ui.TextInput(
+        label="Latitude",
+        required=False,
+        max_length=32,
+        placeholder="e.g. 45.6",
+    )
+    lon = discord.ui.TextInput(
+        label="Longitude",
+        required=False,
+        max_length=32,
+        placeholder="e.g. 72.1",
+    )
 
     def __init__(self, server: str) -> None:
         super().__init__()
@@ -194,6 +214,8 @@ class AddRatholeModal(discord.ui.Modal, title="Add Rathole"):
                 "server": self.server,
                 "rathole_name": self.name.value,
                 "description": self.description.value,
+                "lat": self.lat.value,
+                "lon": self.lon.value,
                 "created_by": interaction.user.name,
             },
         )
@@ -214,12 +236,16 @@ class EditRatholeModal(discord.ui.Modal, title="Edit Rathole"):
         required=False,
         max_length=1000,
     )
+    lat = discord.ui.TextInput(label="Latitude", required=False, max_length=32)
+    lon = discord.ui.TextInput(label="Longitude", required=False, max_length=32)
 
     def __init__(self, server: str, row: dict) -> None:
         super().__init__()
         self.server = server
         self.rathole_name = row["rathole_name"]
         self.description.default = row.get("description") or ""
+        self.lat.default = str(row.get("lat") or "")
+        self.lon.default = str(row.get("lon") or "")
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer(ephemeral=True)
@@ -229,6 +255,8 @@ class EditRatholeModal(discord.ui.Modal, title="Edit Rathole"):
                 "server": self.server,
                 "rathole_name": self.rathole_name,
                 "description": self.description.value,
+                "lat": self.lat.value,
+                "lon": self.lon.value,
             },
         )
         logger = getattr(interaction.client, "log_action", None)
