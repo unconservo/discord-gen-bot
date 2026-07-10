@@ -47,6 +47,7 @@ INITIAL_COGS: List[str] = [
     "cogs.dashboard",
     "cogs.alerts",
     "cogs.stats",
+    "cogs.players",
 ]
 
 

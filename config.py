@@ -61,6 +61,31 @@ API_UPLOAD_RATHOLE_IMAGE: str = f"{API_BASE}/upload_rathole_image.php"
 API_SERVER_SUMMARY: str = f"{API_BASE}/server_summary.php"
 
 # =========================================================================
+# BATTLEMETRICS (Ark: Survival Ascended player tracking)
+# =========================================================================
+# Map internal server tag -> BattleMetrics server ID.
+# Look up each server at https://www.battlemetrics.com/servers/arksa .
+BATTLEMETRICS_IDS: Dict[str, str] = {
+    "2491": "36881527",
+    "2175": "24313374",
+    "2513": "30966925",
+    "2779": "24612845",
+    "2609": "32000142",
+    "2875": "39675763",
+}
+BATTLEMETRICS_BASE: str = "https://api.battlemetrics.com/servers"
+
+# How often (minutes) the player-tracker loop polls BattleMetrics.
+# BattleMetrics itself refreshes every ~2 min, so anything below that
+# is wasted.
+BATTLEMETRICS_POLL_INTERVAL_MIN: int = 2
+
+# Dedicated Discord channel for join/leave notifications.
+# Set PLAYER_TRACKER_CHANNEL_ID in Railway env vars — falls back to
+# LOG_CHANNEL_ID if 0, or skip alerts entirely if both are 0.
+PLAYER_TRACKER_CHANNEL_ID: int = int(os.getenv("PLAYER_TRACKER_CHANNEL_ID", "0"))
+
+# =========================================================================
 # DISCORD IDs (fill these in with your real IDs)
 # =========================================================================
 GEN_CHANNEL_ID: int = 0  # ark-generator channel
