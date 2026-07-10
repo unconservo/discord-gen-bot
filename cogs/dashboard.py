@@ -12,6 +12,7 @@ from api_client import api_client
 from config import API_SERVER_SUMMARY, DASHBOARD_REFRESH_INTERVAL_MIN, SERVERS
 from cogs.dinos import DinoFeedMenuButton
 from cogs.generators import GeneratorsMenuButton, refresh_dashboard
+from cogs.ratholes import RatholeMenuButton
 from cogs.spam_zones import SpamMenuButton
 from state import state
 
@@ -114,6 +115,7 @@ class ServerMenuView(discord.ui.View):
         self.add_item(GeneratorsMenuButton(server))
         self.add_item(DinoFeedMenuButton(server))
         self.add_item(SpamMenuButton(server))
+        self.add_item(RatholeMenuButton(server))
         self.add_item(HomeButton())
 
 
