@@ -9,7 +9,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from api_client import api_client
-from config import API_SERVER_SUMMARY, DASHBOARD_REFRESH_INTERVAL_MIN, SERVERS
+from config import API_RATHOLES, API_SERVER_SUMMARY, DASHBOARD_REFRESH_INTERVAL_MIN, SERVERS
 from cogs.dinos import DinoFeedMenuButton
 from cogs.generators import GeneratorsMenuButton, refresh_dashboard
 from cogs.ratholes import RatholeMenuButton
@@ -73,6 +73,10 @@ class ServerButton(discord.ui.Button):
         if not isinstance(summary, dict):
             summary = {}
 
+        # Count ratholes independently — server_summary.php doesn't include them.
+        ratholes_data = await api_client.get(API_RATHOLES, {"server": self.server})
+        rathole_count = len(ratholes_data) if isinstance(ratholes_data, list) else 0
+
         embed = discord.Embed(
             title=f"Server {self.server} Status", color=0x00FF99
         )
@@ -94,6 +98,11 @@ class ServerButton(discord.ui.Button):
         embed.add_field(
             name="Spam",
             value=f"Zones: {summary.get('spam_zones', 0)}",
+            inline=False,
+        )
+        embed.add_field(
+            name="Ratholes",
+            value=f"Locations: {rathole_count}",
             inline=False,
         )
         await interaction.edit_original_response(
