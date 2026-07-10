@@ -14,6 +14,8 @@ from typing import Dict, List, Optional
 from dotenv import load_dotenv
 
 # Load local .env (Railway injects env vars directly, so this is a no-op there)
+_ENV_FILE = Path(__file__).parent / ".env"
+_ENV_FILE_LOADED = _ENV_FILE.is_file()
 load_dotenv()
 
 # =========================================================================
@@ -203,6 +205,14 @@ def validate() -> None:
     import logging
     log = logging.getLogger(__name__)
     log.info("TOKEN preview: %s", preview)
+    log.info(
+        "TOKEN source diagnostic: .env file at %s exists=%s; "
+        "os.environ has TOKEN key=%s (raw len=%d)",
+        _ENV_FILE,
+        _ENV_FILE_LOADED,
+        "TOKEN" in os.environ,
+        len(os.environ.get("TOKEN", "")),
+    )
     if problems:
         log.error(
             "TOKEN value looks malformed: %s. Please re-copy from the Discord "

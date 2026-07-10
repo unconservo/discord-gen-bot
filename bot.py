@@ -118,6 +118,18 @@ async def _run_once() -> None:
     """Run a single bot session and clean up its aiohttp session on exit."""
     from api_client import api_client
 
+    # Re-log the token preview on every restart so it's easy to find in logs.
+    token = (config.TOKEN or "").strip()
+    if len(token) >= 10:
+        log.info(
+            "About to login with token: %s...%s (len=%d)",
+            token[:6],
+            token[-4:],
+            len(token),
+        )
+    else:
+        log.info("About to login with token: (len=%d)", len(token))
+
     bot = make_bot()
     try:
         await bot.start(config.TOKEN)  # type: ignore[arg-type]
