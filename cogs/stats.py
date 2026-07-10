@@ -19,6 +19,7 @@ from api_client import api_client
 from config import (
     ALERT_CHANNEL_ID,
     API_GET,
+    API_RATHOLES,
     API_SERVER_SUMMARY,
     LOG_CHANNEL_ID,
     SERVERS,
@@ -49,9 +50,14 @@ async def build_stats_embed() -> discord.Embed:
 
     # Try the aggregated server-summary endpoint first (cheap).
     summaries: dict[str, dict] = {}
+    rathole_counts: dict[str, int] = {}
     for server in SERVERS:
         summary = await api_client.get(API_SERVER_SUMMARY, {"server": server})
         summaries[server] = summary if isinstance(summary, dict) else {}
+        ratholes_data = await api_client.get(API_RATHOLES, {"server": server})
+        rathole_counts[server] = (
+            len(ratholes_data) if isinstance(ratholes_data, list) else 0
+        )
 
     # Fall back / cross-check with the raw generator list so counts still make
     # sense if the summary endpoint is unavailable.
@@ -73,6 +79,7 @@ async def build_stats_embed() -> discord.Embed:
 
     total_gens = 0
     total_critical = 0
+    total_ratholes = 0
     for server in SERVERS:
         s = summaries.get(server, {})
         gens = int(s.get("generators", 0))
@@ -81,23 +88,26 @@ async def build_stats_embed() -> discord.Embed:
         healthy = int(s.get("healthy", 0))
         dino = int(s.get("dino_feed", 0))
         spam = int(s.get("spam_zones", 0))
+        ratholes = int(rathole_counts.get(server, 0))
 
         total_gens += gens
         total_critical += critical
+        total_ratholes += ratholes
 
         embed.add_field(
             name=f"Server {server}",
             value=(
                 f"Generators: **{gens}**  |  Critical: **{critical}**\n"
                 f"Low: {low}  |  Healthy: {healthy}\n"
-                f"Dino TPs: {dino}  |  Spam Zones: {spam}"
+                f"Dino TPs: {dino}  |  Spam Zones: {spam}  |  Ratholes: {ratholes}"
             ),
             inline=False,
         )
 
     embed.description = (
         f"**Total generators:** {total_gens}   |   "
-        f"**Critical:** {total_critical}"
+        f"**Critical:** {total_critical}   |   "
+        f"**Ratholes:** {total_ratholes}"
     )
     embed.set_footer(text="Auto-posted daily")
     return embed
