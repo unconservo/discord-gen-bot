@@ -56,6 +56,7 @@ API_RATHOLES: str = f"{API_BASE}/ratholes.php"
 API_ADD_RATHOLE: str = f"{API_BASE}/add_rathole.php"
 API_UPDATE_RATHOLE: str = f"{API_BASE}/update_rathole.php"
 API_DELETE_RATHOLE: str = f"{API_BASE}/delete_rathole.php"
+API_UPLOAD_RATHOLE_IMAGE: str = f"{API_BASE}/upload_rathole_image.php"
 
 API_SERVER_SUMMARY: str = f"{API_BASE}/server_summary.php"
 
