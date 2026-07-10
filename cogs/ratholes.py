@@ -92,12 +92,13 @@ def _rathole_embed(row: dict, index: int, total: int, server: str) -> discord.Em
     )
     lat = row.get("lat")
     lon = row.get("lon")
-    if lat not in (None, "", "0", 0) or lon not in (None, "", "0", 0):
-        embed.add_field(
-            name="Coordinates",
-            value=f"Lat: **{lat or '?'}**   Lon: **{lon or '?'}**",
-            inline=False,
-        )
+    lat_display = "—" if lat in (None, "") else str(lat)
+    lon_display = "—" if lon in (None, "") else str(lon)
+    embed.add_field(
+        name="Coordinates",
+        value=f"Lat: **{lat_display}**   Lon: **{lon_display}**",
+        inline=False,
+    )
     if row.get("image_url"):
         embed.set_image(url=row["image_url"])
     if row.get("created_by"):
