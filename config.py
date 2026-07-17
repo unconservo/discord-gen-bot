@@ -159,7 +159,7 @@ LOW_DAYS: float = 10.0
 # TASK INTERVALS (minutes)
 # =========================================================================
 ALERT_CHECK_INTERVAL_MIN: int = 10
-DASHBOARD_REFRESH_INTERVAL_MIN: int = 5
+DASHBOARD_REFRESH_INTERVAL_MIN: int = 60
 
 # =========================================================================
 # API CLIENT SETTINGS
