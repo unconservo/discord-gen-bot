@@ -142,14 +142,6 @@ async def build_stats_embed() -> discord.Embed:
         f"**Critical:** {total_critical}   |   "
         f"**Ratholes:** {total_ratholes}"
     )
-    embed.add_field(
-        name="\u200b",
-        value=(
-            f"Run `/oao_dashboard` to open the **OAO Control Center**.\n"
-            f"_Snapshot auto-updates every {DASHBOARD_REFRESH_INTERVAL_MIN} min._"
-        ),
-        inline=False,
-    )
     embed.set_footer(text=f"Auto-updating every {DASHBOARD_REFRESH_INTERVAL_MIN} min")
     return embed
 
