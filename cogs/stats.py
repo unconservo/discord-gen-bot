@@ -111,8 +111,22 @@ async def build_stats_embed() -> discord.Embed:
         total_ratholes += ratholes
         total_online += pcount
 
+        # Colour-code the row based on generator fuel state:
+        #   red    -> any critical
+        #   yellow -> any low but no critical
+        #   green  -> all healthy
+        #   white  -> backend gave us nothing / server offline
+        if not s:
+            status_icon = "\N{MEDIUM WHITE CIRCLE}"
+        elif critical > 0:
+            status_icon = "\N{LARGE RED CIRCLE}"
+        elif low > 0:
+            status_icon = "\N{LARGE YELLOW CIRCLE}"
+        else:
+            status_icon = "\N{LARGE GREEN CIRCLE}"
+
         embed.add_field(
-            name=f"Server {server}",
+            name=f"{status_icon} Server {server}",
             value=(
                 f"Players: **{pcount}/{pmax}** ({pstatus})\n"
                 f"Generators: **{gens}**  |  Critical: **{critical}**\n"
