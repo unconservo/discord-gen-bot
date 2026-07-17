@@ -75,6 +75,13 @@ BATTLEMETRICS_IDS: Dict[str, str] = {
 }
 BATTLEMETRICS_BASE: str = "https://api.battlemetrics.com/servers"
 
+# Optional Discord channel ID for a self-healing dashboard.
+# When set, if the bot restarts and finds NO registered dashboard messages
+# (e.g. after a Railway deploy wipes the state file), it auto-posts a
+# fresh /oao_dashboard-style message to this channel so the 5-min stats
+# refresh keeps working without any manual intervention.
+DASHBOARD_CHANNEL_ID: int = int(os.getenv("DASHBOARD_CHANNEL_ID", "0"))
+
 # ARK: Survival Ascended official servers sit behind Steam Datagram Relay
 # so live player *names* can't be fetched via API or A2S. We display the
 # count from BattleMetrics and link out to their web page for the roster.

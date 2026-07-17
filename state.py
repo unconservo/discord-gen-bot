@@ -79,6 +79,11 @@ class StateManager:
         # Persist outside the lock — file I/O is sync but the writes are tiny.
         self._persist_dashboards()
 
+    async def unregister_dashboard(self, channel_id: int) -> None:
+        async with self._lock:
+            self.dashboard_messages.pop(channel_id, None)
+        self._persist_dashboards()
+
     async def all_dashboards(self) -> Dict[int, discord.Message]:
         async with self._lock:
             return dict(self.dashboard_messages)
