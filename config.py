@@ -89,9 +89,9 @@ DASHBOARD_CHANNEL_ID: int = int(os.getenv("DASHBOARD_CHANNEL_ID", "0"))
 # =========================================================================
 # DISCORD IDs (fill these in with your real IDs)
 # =========================================================================
-GEN_CHANNEL_ID: int = 0  # ark-generator channel
-LOG_CHANNEL_ID: int = 0  # log channel
-ALERT_CHANNEL_ID: int = 0  # alerts channel
+GEN_CHANNEL_ID: int = 1524498986906685622  # ark-generator channel
+LOG_CHANNEL_ID: int = 1516132183293563010  # log channel
+ALERT_CHANNEL_ID: int = 1516171257421500537  # alerts channel
 
 # Bug fix #2 — DEFAULT_ROLE is now always defined; used when a server-specific
 # role isn't found in SERVER_ROLES. Set to 0 (falsy) to disable role pings.
@@ -125,7 +125,7 @@ ALERT_CHANNELS: Dict[str, Dict[str, int]] = {
 
 # Optional dedicated channel for the daily /oao_stats snapshot.
 # Falls back to ALERT_CHANNEL_ID (then to LOG_CHANNEL_ID) if 0.
-STATS_CHANNEL_ID: int = 0
+STATS_CHANNEL_ID: int = 1525228084733808642
 # Hour of the day (0-23, UTC) at which the daily stats post fires.
 STATS_POST_HOUR_UTC: int = 12
 
