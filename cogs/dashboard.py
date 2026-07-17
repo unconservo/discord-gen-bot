@@ -177,8 +177,9 @@ class DashboardCog(commands.Cog):
             )
             return
         try:
+            # Stats-only channel: no interactive view attached.
             msg = await channel.send(
-                "OAO Control Center — loading server stats…", view=ServerSelectionView()
+                "OAO Control Center — loading server stats…"
             )
             await state.register_dashboard(msg.channel.id, msg)
             log.info(

@@ -132,6 +132,11 @@ async def refresh_dashboard(bot: Optional[commands.Bot] = None) -> None:
     push a huge card into the channel. Users can still click into the
     generator dashboard via the server-selection buttons on the same message.
 
+    Behaviour rule: a dashboard message living in DASHBOARD_CHANNEL_ID is
+    treated as a stats-only display (no interactive buttons). Dashboards
+    in any other channel (i.e. posted via /oao_dashboard) keep the
+    server-selection buttons so users can drill down.
+
     Cogs register their dashboard messages via `state.register_dashboard(...)`.
     Failures are logged but never raised — a broken message should not kill
     the caller's flow.
@@ -146,6 +151,7 @@ async def refresh_dashboard(bot: Optional[commands.Bot] = None) -> None:
 
     # Lazy imports — avoid circular deps between generators / stats / dashboard.
     from cogs.dashboard import ServerSelectionView
+    from config import DASHBOARD_CHANNEL_ID
     from cogs.stats import build_stats_embed
 
     try:
@@ -157,10 +163,12 @@ async def refresh_dashboard(bot: Optional[commands.Bot] = None) -> None:
     log.info("refresh_dashboard: refreshing %d dashboard message(s).", len(dashboards))
     stale: list[int] = []
     for channel_id, message in dashboards.items():
+        # Stats-only channel: no buttons. Everywhere else: keep the selector.
+        view = None if channel_id == DASHBOARD_CHANNEL_ID else ServerSelectionView()
         try:
             # content=None clears any leftover text so the embed becomes
             # the sole content of the message.
-            await message.edit(content=None, embed=embed, view=ServerSelectionView())
+            await message.edit(content=None, embed=embed, view=view)
         except discord.NotFound:
             log.info("Dashboard in channel %s no longer exists — unregistering.", channel_id)
             stale.append(channel_id)
