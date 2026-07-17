@@ -138,6 +138,10 @@ async def refresh_dashboard(bot: Optional[commands.Bot] = None) -> None:
     """
     dashboards = await state.all_dashboards()
     if not dashboards:
+        log.info(
+            "refresh_dashboard: no dashboards registered — nothing to refresh. "
+            "Run /oao_dashboard or set DASHBOARD_CHANNEL_ID for auto-post."
+        )
         return
 
     # Lazy imports — avoid circular deps between generators / stats / dashboard.
@@ -150,13 +154,19 @@ async def refresh_dashboard(bot: Optional[commands.Bot] = None) -> None:
         log.warning("refresh_dashboard: build_stats_embed failed: %s", e)
         return
 
+    log.info("refresh_dashboard: refreshing %d dashboard message(s).", len(dashboards))
+    stale: list[int] = []
     for channel_id, message in dashboards.items():
         try:
             await message.edit(embed=embed, view=ServerSelectionView())
         except discord.NotFound:
-            log.info("Dashboard message in channel %s no longer exists.", channel_id)
+            log.info("Dashboard in channel %s no longer exists — unregistering.", channel_id)
+            stale.append(channel_id)
         except discord.DiscordException as e:
             log.warning("Failed to refresh dashboard in %s: %s", channel_id, e)
+
+    for cid in stale:
+        await state.unregister_dashboard(cid)
 
 
 # =========================================================================

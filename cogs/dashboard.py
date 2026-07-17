@@ -9,7 +9,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from api_client import api_client
-from config import API_RATHOLES, API_SERVER_SUMMARY, DASHBOARD_REFRESH_INTERVAL_MIN, SERVERS
+from config import API_RATHOLES, API_SERVER_SUMMARY, DASHBOARD_CHANNEL_ID, DASHBOARD_REFRESH_INTERVAL_MIN, SERVERS
 from cogs.dinos import DinoFeedMenuButton
 from cogs.generators import GeneratorsMenuButton, refresh_dashboard
 from cogs.ratholes import RatholeMenuButton
@@ -154,6 +154,40 @@ class DashboardCog(commands.Cog):
     async def on_ready(self) -> None:
         """Rehydrate saved dashboard message references (backlog #1)."""
         await self._rehydrate_dashboards()
+        await self._self_heal_if_empty()
+
+    async def _self_heal_if_empty(self) -> None:
+        """Auto-post a dashboard if we booted with zero registered ones.
+
+        Prevents the "stats don't update after Railway deploy" issue —
+        Railway wipes the local state file, so unless the user runs
+        /oao_dashboard again after every deploy, auto_refresh has nothing
+        to update. Set DASHBOARD_CHANNEL_ID env var to make this automatic.
+        """
+        if not DASHBOARD_CHANNEL_ID:
+            return
+        dashboards = await state.all_dashboards()
+        if dashboards:
+            return
+        channel = self.bot.get_channel(DASHBOARD_CHANNEL_ID)
+        if not isinstance(channel, discord.TextChannel):
+            log.warning(
+                "DASHBOARD_CHANNEL_ID=%s is not a text channel the bot can see.",
+                DASHBOARD_CHANNEL_ID,
+            )
+            return
+        try:
+            msg = await channel.send(
+                "OAO Control Center\n\nSelect Server", view=ServerSelectionView()
+            )
+            await state.register_dashboard(msg.channel.id, msg)
+            log.info(
+                "Auto-posted self-healing dashboard to channel %s (message %s).",
+                msg.channel.id,
+                msg.id,
+            )
+        except discord.DiscordException as e:
+            log.warning("Self-heal dashboard post failed: %s", e)
 
     async def _rehydrate_dashboards(self) -> None:
         entries = state.load_persisted()
