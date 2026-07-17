@@ -178,7 +178,7 @@ class DashboardCog(commands.Cog):
             return
         try:
             msg = await channel.send(
-                "OAO Control Center\n\nSelect Server", view=ServerSelectionView()
+                "OAO Control Center — loading server stats…", view=ServerSelectionView()
             )
             await state.register_dashboard(msg.channel.id, msg)
             log.info(
@@ -186,6 +186,12 @@ class DashboardCog(commands.Cog):
                 msg.channel.id,
                 msg.id,
             )
+            # Kick an immediate refresh so users see stats right away
+            # instead of waiting up to 5 min for the next auto_refresh tick.
+            try:
+                await refresh_dashboard(self.bot)
+            except Exception as e:  # noqa: BLE001
+                log.warning("Immediate refresh after self-heal failed: %s", e)
         except discord.DiscordException as e:
             log.warning("Self-heal dashboard post failed: %s", e)
 

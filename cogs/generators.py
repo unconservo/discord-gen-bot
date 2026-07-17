@@ -158,7 +158,9 @@ async def refresh_dashboard(bot: Optional[commands.Bot] = None) -> None:
     stale: list[int] = []
     for channel_id, message in dashboards.items():
         try:
-            await message.edit(embed=embed, view=ServerSelectionView())
+            # content=None clears any leftover text so the embed becomes
+            # the sole content of the message.
+            await message.edit(content=None, embed=embed, view=ServerSelectionView())
         except discord.NotFound:
             log.info("Dashboard in channel %s no longer exists — unregistering.", channel_id)
             stale.append(channel_id)
