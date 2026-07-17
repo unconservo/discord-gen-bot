@@ -70,7 +70,6 @@ BATTLEMETRICS_IDS: Dict[str, str] = {
     "2175": "24313374",
     "2513": "30966925",
     "2779": "24612845",
-    "2609": "32000142",
     "2875": "39675763",
 }
 BATTLEMETRICS_BASE: str = "https://api.battlemetrics.com/servers"
