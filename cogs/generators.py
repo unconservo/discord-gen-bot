@@ -163,12 +163,16 @@ async def refresh_dashboard(bot: Optional[commands.Bot] = None) -> None:
     log.info("refresh_dashboard: refreshing %d dashboard message(s).", len(dashboards))
     stale: list[int] = []
     for channel_id, message in dashboards.items():
-        # Stats-only channel: no buttons. Everywhere else: keep the selector.
-        view = None if channel_id == DASHBOARD_CHANNEL_ID else ServerSelectionView()
+        # Only auto-refresh dashboards in the dedicated stats channel.
+        # Any other registered message (e.g. leftover from /oao_dashboard
+        # before the register-skip fix) is deliberately left alone so we
+        # don't yank users out of their sub-menu navigation.
+        if DASHBOARD_CHANNEL_ID and channel_id != DASHBOARD_CHANNEL_ID:
+            continue
         try:
             # content=None clears any leftover text so the embed becomes
             # the sole content of the message.
-            await message.edit(content=None, embed=embed, view=view)
+            await message.edit(content=None, embed=embed, view=None)
         except discord.NotFound:
             log.info("Dashboard in channel %s no longer exists — unregistering.", channel_id)
             stale.append(channel_id)

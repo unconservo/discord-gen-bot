@@ -221,15 +221,17 @@ class DashboardCog(commands.Cog):
         name="oao_dashboard", description="Open the OAO Control Center."
     )
     async def oao_dashboard(self, interaction: discord.Interaction) -> None:
+        """Manual, on-demand OAO Control Center — server selector only.
+
+        NOT registered for auto-refresh: the auto-updating stats snapshot
+        lives in DASHBOARD_CHANNEL_ID and this menu stays untouched so
+        users can navigate their server sub-menus without the message
+        being edited out from under them every 5 min.
+        """
         await interaction.response.defer()
-        msg = await interaction.followup.send(
+        await interaction.followup.send(
             "OAO Control Center\n\nSelect Server", view=ServerSelectionView()
         )
-        try:
-            if isinstance(msg, discord.Message):
-                await state.register_dashboard(msg.channel.id, msg)
-        except discord.DiscordException as e:
-            log.debug("Could not register dashboard message: %s", e)
 
     @tasks.loop(minutes=DASHBOARD_REFRESH_INTERVAL_MIN)
     async def auto_refresh(self) -> None:
